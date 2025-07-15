@@ -1,0 +1,146 @@
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  jsonb,
+  index,
+  serial,
+  integer,
+  boolean,
+  date,
+  time,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Session storage table (mandatory for Replit Auth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table (mandatory for Replit Auth)
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").notNull().default("user"), // admin, user, viewer
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const rooms = pgTable("rooms", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  capacity: integer("capacity").notNull(),
+  description: text("description"),
+  imageUrl: varchar("image_url"),
+  equipment: jsonb("equipment").default("[]"), // Array of equipment strings
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const bookings = pgTable("bookings", {
+  id: serial("id").primaryKey(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  roomId: integer("room_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  startDateTime: timestamp("start_date_time").notNull(),
+  endDateTime: timestamp("end_date_time").notNull(),
+  repeatType: varchar("repeat_type").default("none"), // none, daily, weekly, custom
+  repeatConfig: jsonb("repeat_config"), // Configuration for repeating bookings
+  attachmentUrl: varchar("attachment_url"),
+  remindMe: boolean("remind_me").default(false),
+  reminderTime: integer("reminder_time").default(15), // minutes before
+  status: varchar("status").default("confirmed"), // confirmed, cancelled, pending
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  action: varchar("action").notNull(), // create, update, delete, login, logout
+  resourceType: varchar("resource_type").notNull(), // booking, room, user
+  resourceId: varchar("resource_id"),
+  details: jsonb("details"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  bookings: many(bookings),
+  auditLogs: many(auditLogs),
+}));
+
+export const roomsRelations = relations(rooms, ({ many }) => ({
+  bookings: many(bookings),
+}));
+
+export const bookingsRelations = relations(bookings, ({ one }) => ({
+  room: one(rooms, {
+    fields: [bookings.roomId],
+    references: [rooms.id],
+  }),
+  user: one(users, {
+    fields: [bookings.userId],
+    references: [users.id],
+  }),
+}));
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [auditLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+// Zod schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRoomSchema = createInsertSchema(rooms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBookingSchema = createInsertSchema(bookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Types
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type Room = typeof rooms.$inferSelect;
+export type InsertRoom = z.infer<typeof insertRoomSchema>;
+export type Booking = typeof bookings.$inferSelect;
+export type InsertBooking = z.infer<typeof insertBookingSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+
+// Booking with relations
+export type BookingWithRelations = Booking & {
+  room: Room;
+  user: User;
+};
