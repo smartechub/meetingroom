@@ -78,10 +78,48 @@ export const auditLogs = pgTable("audit_logs", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+export const emailSettings = pgTable("email_settings", {
+  id: serial("id").primaryKey(),
+  smtpHost: varchar("smtp_host").notNull(),
+  smtpPort: integer("smtp_port").notNull(),
+  smtpUsername: varchar("smtp_username").notNull(),
+  smtpPassword: varchar("smtp_password").notNull(),
+  fromEmail: varchar("from_email").notNull(),
+  fromName: varchar("from_name").notNull(),
+  enableBookingNotifications: boolean("enable_booking_notifications").default(true),
+  enableReminders: boolean("enable_reminders").default(true),
+  enablePasswordReset: boolean("enable_password_reset").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  token: varchar("token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const calendarSync = pgTable("calendar_sync", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  provider: varchar("provider").notNull(), // 'google' or 'outlook'
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at"),
+  calendarId: varchar("calendar_id"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   bookings: many(bookings),
   auditLogs: many(auditLogs),
+  calendarSync: many(calendarSync),
+  passwordResetTokens: many(passwordResetTokens),
 }));
 
 export const roomsRelations = relations(rooms, ({ many }) => ({
@@ -102,6 +140,20 @@ export const bookingsRelations = relations(bookings, ({ one }) => ({
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, {
     fields: [auditLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const calendarSyncRelations = relations(calendarSync, ({ one }) => ({
+  user: one(users, {
+    fields: [calendarSync.userId],
+    references: [users.id],
+  }),
+}));
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [passwordResetTokens.userId],
     references: [users.id],
   }),
 }));
@@ -129,6 +181,23 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   timestamp: true,
 });
 
+export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCalendarSyncSchema = createInsertSchema(calendarSync).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -138,6 +207,12 @@ export type Booking = typeof bookings.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type EmailSettings = typeof emailSettings.$inferSelect;
+export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+export type CalendarSync = typeof calendarSync.$inferSelect;
+export type InsertCalendarSync = z.infer<typeof insertCalendarSyncSchema>;
 
 // Booking with relations
 export type BookingWithRelations = Booking & {

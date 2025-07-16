@@ -15,6 +15,11 @@ import MyBookings from "@/components/MyBookings";
 import UserManagement from "@/components/UserManagement";
 import RoomManagement from "@/components/RoomManagement";
 import AuditLog from "@/components/AuditLog";
+import EmailSettings from "@/components/EmailSettings";
+import CalendarSync from "@/components/CalendarSync";
+import Analytics from "@/components/Analytics";
+import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -66,6 +71,21 @@ function Router() {
           <Route path="/rooms">
             <Layout>
               <RoomManagement />
+            </Layout>
+          </Route>
+          <Route path="/email-settings">
+            <Layout>
+              <EmailSettings />
+            </Layout>
+          </Route>
+          <Route path="/calendar-sync">
+            <Layout>
+              <CalendarSync />
+            </Layout>
+          </Route>
+          <Route path="/analytics">
+            <Layout>
+              <Analytics />
             </Layout>
           </Route>
           <Route path="/audit">

@@ -16,7 +16,10 @@ import {
   Settings,
   LogOut,
   Sun,
-  Moon
+  Moon,
+  Mail,
+  BarChart3,
+  RefreshCw
 } from "lucide-react";
 
 interface LayoutProps {
@@ -33,11 +36,14 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Book Room', href: '/book', icon: CalendarPlus },
     { name: 'Calendar View', href: '/calendar', icon: Calendar },
     { name: 'My Bookings', href: '/my-bookings', icon: List },
+    { name: 'Calendar Sync', href: '/calendar-sync', icon: RefreshCw },
   ];
 
   const adminNavigation = [
     { name: 'User Management', href: '/users', icon: Users },
     { name: 'Room Management', href: '/rooms', icon: DoorOpen },
+    { name: 'Email Settings', href: '/email-settings', icon: Mail },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Audit Log', href: '/audit', icon: ClipboardList },
   ];
 

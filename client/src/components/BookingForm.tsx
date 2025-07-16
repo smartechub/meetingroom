@@ -191,7 +191,7 @@ export default function BookingForm() {
                     </SelectTrigger>
                     <SelectContent>
                       {roomsLoading ? (
-                        <SelectItem value="" disabled>Loading rooms...</SelectItem>
+                        <SelectItem value="loading" disabled>Loading rooms...</SelectItem>
                       ) : (
                         rooms.map((room: any) => (
                           <SelectItem key={room.id} value={room.id.toString()}>

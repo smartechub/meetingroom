@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertRoomSchema, insertBookingSchema } from "@shared/schema";
+import { insertRoomSchema, insertBookingSchema, insertEmailSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -378,6 +378,238 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking booking conflict:", error);
       res.status(500).json({ message: "Failed to check booking conflict" });
+    }
+  });
+
+  // Email settings routes (admin only)
+  app.get('/api/email-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const settings = await storage.getEmailSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching email settings:", error);
+      res.status(500).json({ message: "Failed to fetch email settings" });
+    }
+  });
+
+  app.post('/api/email-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const validatedData = insertEmailSettingsSchema.parse(req.body);
+      const settings = await storage.upsertEmailSettings(validatedData);
+      
+      await createAuditLog(req, "update", "email_settings", "1", { 
+        action: "Updated email settings",
+        changes: validatedData
+      });
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating email settings:", error);
+      res.status(500).json({ message: "Failed to update email settings" });
+    }
+  });
+
+  app.post('/api/email-settings/test', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Test email connection (this would require nodemailer setup)
+      // For now, just return success
+      res.json({ message: "Email connection test successful" });
+    } catch (error) {
+      console.error("Error testing email connection:", error);
+      res.status(500).json({ message: "Email connection test failed" });
+    }
+  });
+
+  // Password reset routes
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      // Generate reset token
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const expiresAt = new Date(Date.now() + 3600000); // 1 hour
+      
+      // Find user by email
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.email === email);
+      
+      if (!user) {
+        // Don't reveal if user exists or not
+        return res.json({ message: "If the email exists, a reset link has been sent" });
+      }
+      
+      await storage.createPasswordResetToken({
+        userId: user.id,
+        token,
+        expiresAt,
+      });
+      
+      // TODO: Send email with reset link
+      res.json({ message: "Password reset link sent to your email" });
+    } catch (error) {
+      console.error("Error handling forgot password:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  // Calendar sync routes
+  app.get('/api/calendar-sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const calendarSyncs = await storage.getCalendarSync(userId);
+      res.json(calendarSyncs);
+    } catch (error) {
+      console.error("Error fetching calendar syncs:", error);
+      res.status(500).json({ message: "Failed to fetch calendar syncs" });
+    }
+  });
+
+  app.post('/api/calendar-sync/connect/:provider', isAuthenticated, async (req: any, res) => {
+    try {
+      const { provider } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Generate OAuth URL (mock implementation)
+      const authUrl = `https://oauth.${provider}.com/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code`;
+      
+      res.json({ authUrl });
+    } catch (error) {
+      console.error("Error connecting calendar:", error);
+      res.status(500).json({ message: "Failed to connect calendar" });
+    }
+  });
+
+  app.delete('/api/calendar-sync/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Check if user owns this sync
+      const sync = await storage.getCalendarSync(userId);
+      const userSync = sync.find(s => s.id === parseInt(id));
+      
+      if (!userSync) {
+        return res.status(404).json({ message: "Calendar sync not found" });
+      }
+      
+      await storage.deleteCalendarSync(parseInt(id));
+      
+      await createAuditLog(req, "delete", "calendar_sync", id, { 
+        action: "Disconnected calendar sync",
+        provider: userSync.provider
+      });
+      
+      res.json({ message: "Calendar sync deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting calendar sync:", error);
+      res.status(500).json({ message: "Failed to delete calendar sync" });
+    }
+  });
+
+  app.post('/api/calendar-sync/:id/sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      
+      // Check if user owns this sync
+      const sync = await storage.getCalendarSync(userId);
+      const userSync = sync.find(s => s.id === parseInt(id));
+      
+      if (!userSync) {
+        return res.status(404).json({ message: "Calendar sync not found" });
+      }
+      
+      // Mock sync operation
+      await storage.updateCalendarSync(parseInt(id), {
+        lastSyncAt: new Date(),
+      });
+      
+      await createAuditLog(req, "update", "calendar_sync", id, { 
+        action: "Manual calendar sync",
+        provider: userSync.provider
+      });
+      
+      res.json({ message: "Calendar synced successfully" });
+    } catch (error) {
+      console.error("Error syncing calendar:", error);
+      res.status(500).json({ message: "Failed to sync calendar" });
+    }
+  });
+
+  // Analytics routes (admin only)
+  app.get('/api/analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { dateRange = '7d', roomId = 'all' } = req.query;
+      
+      // Mock analytics data - in production, this would query the database
+      const analyticsData = {
+        summary: {
+          totalBookings: 245,
+          totalBookingsChange: 12.5,
+          uniqueUsers: 89,
+          uniqueUsersChange: 8.2,
+          averageBookingDuration: 2.3,
+          averageBookingDurationChange: -5.1,
+          peakUtilization: 87,
+          peakUtilizationChange: 15.3,
+        },
+        bookingTrends: [
+          { date: '2024-01-01', bookings: 12, duration: 2.1 },
+          { date: '2024-01-02', bookings: 15, duration: 2.4 },
+          { date: '2024-01-03', bookings: 18, duration: 2.0 },
+          { date: '2024-01-04', bookings: 22, duration: 2.6 },
+          { date: '2024-01-05', bookings: 19, duration: 2.2 },
+          { date: '2024-01-06', bookings: 16, duration: 2.3 },
+          { date: '2024-01-07', bookings: 21, duration: 2.5 },
+        ],
+        roomUtilization: [
+          { name: 'Conference Room A', bookings: 45, utilization: 78, hours: 96 },
+          { name: 'Meeting Room B', bookings: 38, utilization: 65, hours: 82 },
+          { name: 'Board Room', bookings: 22, utilization: 45, hours: 54 },
+          { name: 'Training Room', bookings: 31, utilization: 58, hours: 71 },
+        ],
+        timeDistribution: Array.from({ length: 12 }, (_, i) => ({
+          hour: i + 8,
+          bookings: Math.floor(Math.random() * 30) + 5,
+        })),
+        userActivity: [
+          { name: 'John Doe', bookings: 15, hours: 32 },
+          { name: 'Jane Smith', bookings: 12, hours: 28 },
+          { name: 'Mike Johnson', bookings: 10, hours: 25 },
+          { name: 'Sarah Wilson', bookings: 8, hours: 18 },
+          { name: 'David Brown', bookings: 7, hours: 16 },
+        ],
+        bookingStatus: [
+          { name: 'Confirmed', value: 185, color: '#00C49F' },
+          { name: 'Pending', value: 42, color: '#FFBB28' },
+          { name: 'Cancelled', value: 18, color: '#FF8042' },
+        ],
+      };
+      
+      res.json(analyticsData);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 

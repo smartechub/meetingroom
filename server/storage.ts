@@ -3,6 +3,9 @@ import {
   rooms,
   bookings,
   auditLogs,
+  emailSettings,
+  passwordResetTokens,
+  calendarSync,
   type User,
   type UpsertUser,
   type Room,
@@ -12,6 +15,12 @@ import {
   type BookingWithRelations,
   type AuditLog,
   type InsertAuditLog,
+  type EmailSettings,
+  type InsertEmailSettings,
+  type PasswordResetToken,
+  type InsertPasswordResetToken,
+  type CalendarSync,
+  type InsertCalendarSync,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, asc, ilike, or } from "drizzle-orm";
@@ -52,6 +61,21 @@ export interface IStorage {
     bookedToday: number;
     weeklyBookings: number;
   }>;
+  
+  // Email settings operations
+  getEmailSettings(): Promise<EmailSettings | undefined>;
+  upsertEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
+  
+  // Password reset operations
+  createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  deletePasswordResetToken(token: string): Promise<boolean>;
+  
+  // Calendar sync operations
+  getCalendarSync(userId: string): Promise<CalendarSync[]>;
+  createCalendarSync(sync: InsertCalendarSync): Promise<CalendarSync>;
+  updateCalendarSync(id: number, updates: Partial<CalendarSync>): Promise<CalendarSync | undefined>;
+  deleteCalendarSync(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -91,7 +115,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Room operations
@@ -177,24 +201,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRoomBookings(roomId: number, startDate?: Date, endDate?: Date): Promise<BookingWithRelations[]> {
-    let query = db
+    let whereCondition = eq(bookings.roomId, roomId);
+    
+    if (startDate && endDate) {
+      whereCondition = and(
+        eq(bookings.roomId, roomId),
+        gte(bookings.startDateTime, startDate),
+        lte(bookings.endDateTime, endDate)
+      );
+    }
+    
+    const result = await db
       .select()
       .from(bookings)
       .leftJoin(rooms, eq(bookings.roomId, rooms.id))
       .leftJoin(users, eq(bookings.userId, users.id))
-      .where(eq(bookings.roomId, roomId));
-    
-    if (startDate && endDate) {
-      query = query.where(
-        and(
-          eq(bookings.roomId, roomId),
-          gte(bookings.startDateTime, startDate),
-          lte(bookings.endDateTime, endDate)
-        )
-      );
-    }
-    
-    const result = await query.orderBy(asc(bookings.startDateTime));
+      .where(whereCondition)
+      .orderBy(asc(bookings.startDateTime));
     
     return result.map(row => ({
       ...row.bookings,
@@ -219,58 +242,41 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBooking(id: number): Promise<boolean> {
     const result = await db.delete(bookings).where(eq(bookings.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async checkBookingConflict(roomId: number, startTime: Date, endTime: Date, excludeBookingId?: number): Promise<boolean> {
-    let query = db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(
+    let whereCondition = and(
+      eq(bookings.roomId, roomId),
+      eq(bookings.status, "confirmed"),
+      or(
         and(
-          eq(bookings.roomId, roomId),
-          eq(bookings.status, "confirmed"),
-          or(
-            and(
-              gte(bookings.startDateTime, startTime),
-              lte(bookings.startDateTime, endTime)
-            ),
-            and(
-              gte(bookings.endDateTime, startTime),
-              lte(bookings.endDateTime, endTime)
-            ),
-            and(
-              lte(bookings.startDateTime, startTime),
-              gte(bookings.endDateTime, endTime)
-            )
-          )
+          gte(bookings.startDateTime, startTime),
+          lte(bookings.startDateTime, endTime)
+        ),
+        and(
+          gte(bookings.endDateTime, startTime),
+          lte(bookings.endDateTime, endTime)
+        ),
+        and(
+          lte(bookings.startDateTime, startTime),
+          gte(bookings.endDateTime, endTime)
         )
-      );
+      )
+    );
     
     if (excludeBookingId) {
-      query = query.where(
-        and(
-          eq(bookings.roomId, roomId),
-          eq(bookings.status, "confirmed"),
-          or(
-            and(
-              gte(bookings.startDateTime, startTime),
-              lte(bookings.startDateTime, endTime)
-            ),
-            and(
-              gte(bookings.endDateTime, startTime),
-              lte(bookings.endDateTime, endTime)
-            ),
-            and(
-              lte(bookings.startDateTime, startTime),
-              gte(bookings.endDateTime, endTime)
-            )
-          )
-        )
+      whereCondition = and(
+        whereCondition,
+        eq(bookings.id, excludeBookingId)
       );
     }
     
-    const conflicts = await query;
+    const conflicts = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(whereCondition);
+    
     return conflicts.length > 0;
   }
 
@@ -345,6 +351,85 @@ export class DatabaseStorage implements IStorage {
       bookedToday: bookedToday.length,
       weeklyBookings: weeklyBookings.length,
     };
+  }
+
+  // Email settings operations
+  async getEmailSettings(): Promise<EmailSettings | undefined> {
+    const [settings] = await db.select().from(emailSettings).limit(1);
+    return settings;
+  }
+
+  async upsertEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings> {
+    const [result] = await db
+      .insert(emailSettings)
+      .values(settings)
+      .onConflictDoUpdate({
+        target: emailSettings.id,
+        set: {
+          ...settings,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return result;
+  }
+
+  // Password reset operations
+  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    const [result] = await db
+      .insert(passwordResetTokens)
+      .values(token)
+      .returning();
+    return result;
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const [result] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token))
+      .limit(1);
+    return result;
+  }
+
+  async deletePasswordResetToken(token: string): Promise<boolean> {
+    const result = await db
+      .delete(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Calendar sync operations
+  async getCalendarSync(userId: string): Promise<CalendarSync[]> {
+    return await db
+      .select()
+      .from(calendarSync)
+      .where(eq(calendarSync.userId, userId))
+      .orderBy(asc(calendarSync.createdAt));
+  }
+
+  async createCalendarSync(sync: InsertCalendarSync): Promise<CalendarSync> {
+    const [result] = await db
+      .insert(calendarSync)
+      .values(sync)
+      .returning();
+    return result;
+  }
+
+  async updateCalendarSync(id: number, updates: Partial<CalendarSync>): Promise<CalendarSync | undefined> {
+    const [result] = await db
+      .update(calendarSync)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(calendarSync.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCalendarSync(id: number): Promise<boolean> {
+    const result = await db
+      .delete(calendarSync)
+      .where(eq(calendarSync.id, id));
+    return (result.rowCount || 0) > 0;
   }
 }
 

@@ -25,7 +25,7 @@ export default function CalendarView() {
     queryKey: ['/api/bookings'],
   });
 
-  const timeSlots = Array.from({ length: 9 }, (_, i) => i + 9); // 9 AM to 5 PM
+  const timeSlots = Array.from({ length: 24 }, (_, i) => i); // 24-hour format: 0 AM to 11 PM
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => direction === 'prev' ? subWeeks(prev, 1) : addWeeks(prev, 1));
