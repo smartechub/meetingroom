@@ -18,7 +18,8 @@ import AuditLog from "@/components/AuditLog";
 import EmailSettings from "@/components/EmailSettings";
 import CalendarSync from "@/components/CalendarSync";
 import Analytics from "@/components/Analytics";
-// Removed Login and ForgotPassword - using Replit auth instead
+import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -35,7 +36,10 @@ function Router() {
   return (
     <Switch>
       {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <>
+          <Route path="/" component={Login} />
+          <Route path="/forgot-password" component={ForgotPassword} />
+        </>
       ) : (
         <Route path="/" component={Home} />
       )}

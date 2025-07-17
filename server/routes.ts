@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./customAuth";
 import { insertRoomSchema, insertBookingSchema, insertEmailSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -18,14 +18,18 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize database with default admin user
+  const { initializeDatabase } = await import("./initializeDb");
+  await initializeDatabase();
+  
   // Auth middleware
   await setupAuth(app);
 
   // Helper function to create audit log
   const createAuditLog = async (req: any, action: string, resourceType: string, resourceId?: string, details?: any) => {
-    if (req.user?.claims?.sub) {
+    if (req.user?.id) {
       await storage.createAuditLog({
-        userId: req.user.claims.sub,
+        userId: req.user.id,
         action,
         resourceType,
         resourceId,
@@ -37,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -84,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/rooms', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -101,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -122,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -143,13 +147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Booking routes
   app.get('/api/bookings', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       let bookings;
       
       if (user?.role === 'admin') {
         bookings = await storage.getAllBookings();
       } else {
-        bookings = await storage.getUserBookings(req.user.claims.sub);
+        bookings = await storage.getUserBookings(req.user.id);
       }
       
       res.json(bookings);
@@ -161,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/bookings/my', isAuthenticated, async (req: any, res) => {
     try {
-      const bookings = await storage.getUserBookings(req.user.claims.sub);
+      const bookings = await storage.getUserBookings(req.user.id);
       res.json(bookings);
     } catch (error) {
       console.error("Error fetching user bookings:", error);
@@ -177,8 +181,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found" });
       }
       
-      const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin' && booking.userId !== req.user.claims.sub) {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin' && booking.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
       
@@ -191,14 +195,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/bookings', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role === 'viewer') {
         return res.status(403).json({ message: "Viewers cannot create bookings" });
       }
 
       const bookingData = insertBookingSchema.parse({
         ...req.body,
-        userId: req.user.claims.sub,
+        userId: req.user.id,
       });
       
       // Check for conflicts
@@ -229,8 +233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found" });
       }
       
-      const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin' && booking.userId !== req.user.claims.sub) {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin' && booking.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
       
@@ -252,8 +256,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found" });
       }
       
-      const user = await storage.getUser(req.user.claims.sub);
-      if (user?.role !== 'admin' && booking.userId !== req.user.claims.sub) {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin' && booking.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
       
@@ -272,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management routes (Admin only)
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -287,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/users/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -308,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/users/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -329,7 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Audit log routes (Admin only)
   app.get('/api/audit-logs', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -384,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email settings routes (admin only)
   app.get('/api/email-settings', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -399,7 +403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/email-settings', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -421,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/email-settings/test', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -470,7 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Calendar sync routes
   app.get('/api/calendar-sync', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const calendarSyncs = await storage.getCalendarSync(userId);
       res.json(calendarSyncs);
     } catch (error) {
@@ -482,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/calendar-sync/connect/:provider', isAuthenticated, async (req: any, res) => {
     try {
       const { provider } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Generate OAuth URL (mock implementation)
       const authUrl = `https://oauth.${provider}.com/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code`;
@@ -497,7 +501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/calendar-sync/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Check if user owns this sync
       const sync = await storage.getCalendarSync(userId);
@@ -524,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/calendar-sync/:id/sync', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Check if user owns this sync
       const sync = await storage.getCalendarSync(userId);
@@ -554,7 +558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics routes (admin only)
   app.get('/api/analytics', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
