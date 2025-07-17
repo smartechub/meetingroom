@@ -55,7 +55,10 @@ export default function BookingForm() {
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData & { attachmentUrl?: string }) => {
-      const response = await apiRequest('POST', '/api/bookings', data);
+      const response = await apiRequest('/api/bookings', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -91,10 +94,13 @@ export default function BookingForm() {
 
   const conflictCheckMutation = useMutation({
     mutationFn: async ({ roomId, startDateTime, endDateTime }: { roomId: string, startDateTime: string, endDateTime: string }) => {
-      const response = await apiRequest('POST', '/api/bookings/check-conflict', {
-        roomId: parseInt(roomId),
-        startDateTime,
-        endDateTime,
+      const response = await apiRequest('/api/bookings/check-conflict', {
+        method: 'POST',
+        body: JSON.stringify({
+          roomId: parseInt(roomId),
+          startDateTime,
+          endDateTime,
+        })
       });
       return response.json();
     },

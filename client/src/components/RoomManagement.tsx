@@ -82,7 +82,10 @@ export default function RoomManagement() {
 
   const createRoomMutation = useMutation({
     mutationFn: async (data: RoomFormData & { imageUrl?: string }) => {
-      const response = await apiRequest('POST', '/api/rooms', data);
+      const response = await apiRequest('/api/rooms', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -117,7 +120,10 @@ export default function RoomManagement() {
 
   const updateRoomMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: Partial<RoomFormData> }) => {
-      const response = await apiRequest('PUT', `/api/rooms/${id}`, data);
+      const response = await apiRequest(`/api/rooms/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -150,7 +156,9 @@ export default function RoomManagement() {
 
   const deleteRoomMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/rooms/${id}`);
+      await apiRequest(`/api/rooms/${id}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       toast({

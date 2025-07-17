@@ -7,7 +7,8 @@ This is a corporate room booking system built with React, Express, and PostgreSQ
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Authentication: Uses Replit Auth (OIDC) - no custom login forms needed.
+Authentication: Migrated from Replit Auth to custom email/password authentication with traditional login forms.
+Default admin credentials: admin@company.com / admin123
 
 ## System Architecture
 
@@ -37,10 +38,11 @@ Authentication: Uses Replit Auth (OIDC) - no custom login forms needed.
 ## Key Components
 
 ### Authentication System
-- **Provider**: Replit Auth with OIDC
+- **Provider**: Custom email/password authentication with bcrypt password hashing
 - **Session Storage**: PostgreSQL-backed sessions using connect-pg-simple
 - **Role-Based Access**: Three roles (admin, user, viewer) with different permissions
-- **Security**: Secure password hashing and session management
+- **Security**: Secure password hashing with bcrypt and session management
+- **Default Admin**: admin@company.com / admin123 (created automatically on startup)
 
 ### Database Schema
 - **Users**: Profile information and role assignments
@@ -65,11 +67,11 @@ Authentication: Uses Replit Auth (OIDC) - no custom login forms needed.
 ## Data Flow
 
 ### Authentication Flow
-1. User accesses application
-2. Replit Auth redirects to OIDC provider
-3. Successful authentication creates/updates user record
-4. Session established with PostgreSQL storage
-5. Role-based access control applied
+1. User accesses application and sees custom login form
+2. User enters email and password credentials
+3. Server validates credentials against PostgreSQL user table with bcrypt
+4. Successful authentication creates session with PostgreSQL storage
+5. Role-based access control applied based on user role
 
 ### Booking Flow
 1. User selects room and time slot
@@ -92,7 +94,7 @@ Authentication: Uses Replit Auth (OIDC) - no custom login forms needed.
 - **Connection**: WebSocket-based connection pooling
 
 ### Authentication
-- **Replit Auth**: OIDC-based authentication service
+- **Custom Authentication**: Email/password with bcrypt hashing
 - **Session Store**: PostgreSQL session persistence
 
 ### UI Components
@@ -110,7 +112,7 @@ Authentication: Uses Replit Auth (OIDC) - no custom login forms needed.
 ### Development Environment
 - **Server**: Express with Vite middleware
 - **Database**: Neon PostgreSQL with environment variables
-- **Authentication**: Replit Auth with development domains
+- **Authentication**: Custom email/password authentication
 - **Asset Serving**: Vite dev server for client assets
 
 ### Production Build
@@ -121,7 +123,7 @@ Authentication: Uses Replit Auth (OIDC) - no custom login forms needed.
 
 ### Environment Configuration
 - **Database**: `DATABASE_URL` for PostgreSQL connection
-- **Authentication**: `ISSUER_URL`, `REPL_ID`, `SESSION_SECRET`
+- **Authentication**: `SESSION_SECRET` for session management
 - **Domain**: `REPLIT_DOMAINS` for CORS configuration
 
 ### Session Management
@@ -129,4 +131,4 @@ Authentication: Uses Replit Auth (OIDC) - no custom login forms needed.
 - **Security**: HTTP-only cookies with secure flags
 - **Lifecycle**: 7-day session expiration
 
-The system follows a traditional three-tier architecture with clear separation between presentation, business logic, and data persistence layers. The choice of PostgreSQL with Drizzle provides type safety while maintaining flexibility for complex queries. The Replit Auth integration simplifies authentication while providing enterprise-grade security features.
+The system follows a traditional three-tier architecture with clear separation between presentation, business logic, and data persistence layers. The choice of PostgreSQL with Drizzle provides type safety while maintaining flexibility for complex queries. The custom authentication system provides enterprise-grade security with bcrypt password hashing and session management.

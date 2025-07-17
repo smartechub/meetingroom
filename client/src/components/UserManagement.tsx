@@ -34,7 +34,10 @@ export default function UserManagement() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string, updates: any }) => {
-      const response = await apiRequest('PUT', `/api/users/${id}`, updates);
+      const response = await apiRequest(`/api/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -55,7 +58,9 @@ export default function UserManagement() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest('DELETE', `/api/users/${id}`);
+      await apiRequest(`/api/users/${id}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       toast({

@@ -37,7 +37,9 @@ export default function MyBookings() {
 
   const deleteBookingMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/bookings/${id}`);
+      await apiRequest(`/api/bookings/${id}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       toast({
