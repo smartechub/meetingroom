@@ -294,6 +294,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const { email, firstName, lastName, role, password } = req.body;
+      
+      if (!email || !firstName || !lastName || !role || !password) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      
+      // Hash password
+      const bcrypt = await import("bcrypt");
+      const passwordHash = await bcrypt.hash(password, 10);
+      
+      // Generate UUID for new user
+      const { v4: uuidv4 } = await import("uuid");
+      const newUser = await storage.createUser({
+        id: uuidv4(),
+        email,
+        firstName,
+        lastName,
+        role,
+        passwordHash,
+      });
+      
+      await createAuditLog(req, 'create', 'user', newUser.id, { email, firstName, lastName, role });
+      
+      // Remove password hash from response
+      const { passwordHash: _, ...userResponse } = newUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   app.put('/api/users/:id', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
