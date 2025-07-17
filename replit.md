@@ -132,3 +132,12 @@ Default admin credentials: admin@company.com / admin123
 - **Lifecycle**: 7-day session expiration
 
 The system follows a traditional three-tier architecture with clear separation between presentation, business logic, and data persistence layers. The choice of PostgreSQL with Drizzle provides type safety while maintaining flexibility for complex queries. The custom authentication system provides enterprise-grade security with bcrypt password hashing and session management.
+
+## Recent Changes
+
+### July 17, 2025 - Migration to Replit Environment Completed
+- Successfully migrated project from Replit Agent to Replit environment
+- Provisioned PostgreSQL database and deployed schema with Drizzle
+- Fixed logout functionality to use custom auth POST endpoint instead of GET
+- Verified all core features working: login, dashboard, room/booking management
+- Application running successfully on port 5000 with custom email/password authentication

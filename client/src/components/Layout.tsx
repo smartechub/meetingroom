@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   Calendar, 
   CalendarPlus, 
@@ -30,6 +32,13 @@ export default function Layout({ children }: LayoutProps) {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [location, navigate] = useLocation();
+
+  const logoutMutation = useMutation({
+    mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
+    onSuccess: () => {
+      window.location.href = "/";
+    },
+  });
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -132,7 +141,8 @@ export default function Layout({ children }: LayoutProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.location.href = '/api/logout'}
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
               className="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
             >
               <LogOut className="w-4 h-4" />
