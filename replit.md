@@ -7,6 +7,7 @@ This is a corporate room booking system built with React, Express, and PostgreSQ
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Authentication: Uses Replit Auth (OIDC) - no custom login forms needed.
 
 ## System Architecture
 

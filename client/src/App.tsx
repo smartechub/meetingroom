@@ -18,8 +18,7 @@ import AuditLog from "@/components/AuditLog";
 import EmailSettings from "@/components/EmailSettings";
 import CalendarSync from "@/components/CalendarSync";
 import Analytics from "@/components/Analytics";
-import Login from "@/pages/Login";
-import ForgotPassword from "@/pages/ForgotPassword";
+// Removed Login and ForgotPassword - using Replit auth instead
 import NotFound from "@/pages/not-found";
 
 function Router() {
