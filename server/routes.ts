@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./customAuth";
-import { insertRoomSchema, insertBookingSchema, insertEmailSettingsSchema } from "@shared/schema";
+import { insertRoomSchema, insertBookingSchema, updateBookingSchema, insertEmailSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
@@ -238,7 +238,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const updates = req.body;
+      const parsedUpdates = updateBookingSchema.parse(req.body);
+      const updates = {
+        ...parsedUpdates,
+        startDateTime: new Date(parsedUpdates.startDateTime),
+        endDateTime: new Date(parsedUpdates.endDateTime),
+      };
       const updatedBooking = await storage.updateBooking(id, updates);
       await createAuditLog(req, 'update', 'booking', id.toString(), updates);
       res.json(updatedBooking);

@@ -180,6 +180,16 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   endDateTime: z.string().transform((val) => new Date(val)),
 });
 
+export const updateBookingSchema = createInsertSchema(bookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  userId: true,
+}).extend({
+  startDateTime: z.string(),
+  endDateTime: z.string(),
+});
+
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
   timestamp: true,

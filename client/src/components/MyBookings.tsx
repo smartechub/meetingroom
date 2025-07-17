@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Calendar, 
   Clock, 
@@ -19,6 +22,19 @@ import {
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const editBookingSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  startDateTime: z.string().min(1, "Start date and time are required"),
+  endDateTime: z.string().min(1, "End date and time are required"),
+  roomId: z.number().min(1, "Room is required"),
+});
+
+type EditBookingData = z.infer<typeof editBookingSchema>;
 
 export default function MyBookings() {
   const { toast } = useToast();
@@ -26,6 +42,8 @@ export default function MyBookings() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [roomFilter, setRoomFilter] = useState("all");
+  const [editingBooking, setEditingBooking] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['/api/bookings/my'],
@@ -33,6 +51,43 @@ export default function MyBookings() {
 
   const { data: rooms = [] } = useQuery({
     queryKey: ['/api/rooms'],
+  });
+
+  const form = useForm<EditBookingData>({
+    resolver: zodResolver(editBookingSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      startDateTime: "",
+      endDateTime: "",
+      roomId: 1,
+    },
+  });
+
+  const updateBookingMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: EditBookingData }) => {
+      const response = await apiRequest(`/api/bookings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Booking updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings/my'] });
+      setIsEditModalOpen(false);
+      setEditingBooking(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteBookingMutation = useMutation({
@@ -82,6 +137,35 @@ export default function MyBookings() {
   const handleDeleteBooking = (id: number) => {
     if (window.confirm('Are you sure you want to delete this booking?')) {
       deleteBookingMutation.mutate(id);
+    }
+  };
+
+  const handleEditBooking = (booking: any) => {
+    setEditingBooking(booking);
+    // Format dates for datetime-local input
+    const startDate = new Date(booking.startDateTime);
+    const endDate = new Date(booking.endDateTime);
+    
+    form.reset({
+      title: booking.title,
+      description: booking.description || "",
+      startDateTime: `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}T${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`,
+      endDateTime: `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}T${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`,
+      roomId: booking.roomId,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const onEditSubmit = (data: EditBookingData) => {
+    if (editingBooking) {
+      updateBookingMutation.mutate({
+        id: editingBooking.id,
+        data: {
+          ...data,
+          startDateTime: data.startDateTime,
+          endDateTime: data.endDateTime,
+        }
+      });
     }
   };
 
@@ -232,6 +316,7 @@ export default function MyBookings() {
                           variant="outline"
                           size="sm"
                           disabled={booking.status === 'cancelled'}
+                          onClick={() => handleEditBooking(booking)}
                         >
                           <Edit className="w-4 h-4 mr-2" />
                           Edit
@@ -255,6 +340,91 @@ export default function MyBookings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Booking Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Booking</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Title *</Label>
+                <Input
+                  id="edit-title"
+                  placeholder="Enter booking title"
+                  {...form.register('title')}
+                />
+                {form.formState.errors.title && (
+                  <p className="text-sm text-red-600">{form.formState.errors.title.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-room">Room *</Label>
+                <Select value={form.watch('roomId')?.toString()} onValueChange={(value) => form.setValue('roomId', parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a room" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rooms.map((room: any) => (
+                      <SelectItem key={room.id} value={room.id.toString()}>
+                        {room.name} (Capacity: {room.capacity})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.roomId && (
+                  <p className="text-sm text-red-600">{form.formState.errors.roomId.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="edit-start">Start Date & Time *</Label>
+                <Input
+                  id="edit-start"
+                  type="datetime-local"
+                  {...form.register('startDateTime')}
+                />
+                {form.formState.errors.startDateTime && (
+                  <p className="text-sm text-red-600">{form.formState.errors.startDateTime.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-end">End Date & Time *</Label>
+                <Input
+                  id="edit-end"
+                  type="datetime-local"
+                  {...form.register('endDateTime')}
+                />
+                {form.formState.errors.endDateTime && (
+                  <p className="text-sm text-red-600">{form.formState.errors.endDateTime.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="Enter booking description..."
+                {...form.register('description')}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateBookingMutation.isPending}>
+                {updateBookingMutation.isPending ? 'Updating...' : 'Update Booking'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
