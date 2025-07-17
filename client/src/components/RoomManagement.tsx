@@ -457,10 +457,10 @@ export default function RoomManagement() {
                       <div className="mb-4">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Equipment</h4>
                         <div className="flex flex-wrap gap-2">
-                          {room.equipment.map((equipmentId: string) => {
+                          {room.equipment.map((equipmentId: string, index: number) => {
                             const Icon = getEquipmentIcon(equipmentId);
                             return (
-                              <Badge key={equipmentId} className={getEquipmentColor(equipmentId)}>
+                              <Badge key={`${equipmentId}-${index}`} className={getEquipmentColor(equipmentId)}>
                                 <Icon className="w-3 h-3 mr-1" />
                                 {getEquipmentLabel(equipmentId)}
                               </Badge>
