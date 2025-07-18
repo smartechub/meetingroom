@@ -11,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CloudUpload, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { CloudUpload, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, X, Plus, Upload, Users, Bell } from "lucide-react";
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -23,7 +24,9 @@ const bookingSchema = z.object({
   startDateTime: z.string().min(1, "Start date and time is required"),
   endDateTime: z.string().min(1, "End date and time is required"),
   description: z.string().optional(),
+  participants: z.array(z.string().email("Invalid email address")).default([]),
   repeatType: z.enum(["none", "daily", "weekly", "custom"]).default("none"),
+  customDays: z.array(z.number().min(0).max(6)).default([]), // 0 = Sunday, 6 = Saturday
   remindMe: z.boolean().default(false),
   reminderTime: z.number().default(15),
 });
@@ -35,6 +38,7 @@ export default function BookingForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [participantEmail, setParticipantEmail] = useState("");
   const [roomAvailability, setRoomAvailability] = useState<Array<{
     id: number;
     name: string;
@@ -57,11 +61,65 @@ export default function BookingForm() {
       startDateTime: "",
       endDateTime: "",
       description: "",
+      participants: [],
       repeatType: "none",
+      customDays: [],
       remindMe: false,
       reminderTime: 15,
     },
   });
+
+  const reminderOptions = [
+    { value: 5, label: "5 minutes before" },
+    { value: 10, label: "10 minutes before" },
+    { value: 15, label: "15 minutes before" },
+    { value: 30, label: "30 minutes before" },
+    { value: 60, label: "1 hour before" },
+    { value: 120, label: "2 hours before" },
+    { value: 1440, label: "1 day before" },
+  ];
+
+  const weekDays = [
+    { value: 0, label: "Sunday" },
+    { value: 1, label: "Monday" },
+    { value: 2, label: "Tuesday" },
+    { value: 3, label: "Wednesday" },
+    { value: 4, label: "Thursday" },
+    { value: 5, label: "Friday" },
+    { value: 6, label: "Saturday" },
+  ];
+
+  // Helper functions for participants
+  const addParticipant = () => {
+    if (participantEmail && participantEmail.includes('@')) {
+      const currentParticipants = form.getValues('participants') || [];
+      if (!currentParticipants.includes(participantEmail)) {
+        form.setValue('participants', [...currentParticipants, participantEmail]);
+        setParticipantEmail("");
+      }
+    }
+  };
+
+  const removeParticipant = (emailToRemove: string) => {
+    const currentParticipants = form.getValues('participants') || [];
+    form.setValue('participants', currentParticipants.filter(email => email !== emailToRemove));
+  };
+
+  const handleParticipantKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addParticipant();
+    }
+  };
+
+  // Helper functions for custom days
+  const toggleCustomDay = (dayValue: number) => {
+    const currentDays = form.getValues('customDays') || [];
+    const newDays = currentDays.includes(dayValue)
+      ? currentDays.filter(day => day !== dayValue)
+      : [...currentDays, dayValue].sort();
+    form.setValue('customDays', newDays);
+  };
 
   // Function to check room availability
   const checkRoomAvailability = async (startDateTime: string, endDateTime: string) => {

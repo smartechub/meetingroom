@@ -250,6 +250,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const booking = await storage.createBooking(bookingData);
       await createAuditLog(req, 'create', 'booking', booking.id.toString(), booking);
+      
+      // Send notification emails to participants
+      if (booking.participants && booking.participants.length > 0) {
+        try {
+          const room = await storage.getRoom(booking.roomId);
+          const startDate = new Date(booking.startDateTime);
+          const endDate = new Date(booking.endDateTime);
+          
+          // Get email settings
+          const emailSettings = await storage.getEmailSettings();
+          if (emailSettings && emailSettings.enableBookingNotifications) {
+            const transporter = nodemailer.createTransport({
+              host: emailSettings.smtpHost,
+              port: emailSettings.smtpPort,
+              secure: emailSettings.smtpPort === 465,
+              auth: {
+                user: emailSettings.smtpUsername,
+                pass: emailSettings.smtpPassword,
+              },
+            });
+
+            // Send email to each participant
+            for (const participantEmail of booking.participants) {
+              const emailContent = `
+                <h2>Meeting Invitation</h2>
+                <p>You have been invited to a meeting:</p>
+                <p><strong>Title:</strong> ${booking.title}</p>
+                <p><strong>Room:</strong> ${room?.name}</p>
+                <p><strong>Date:</strong> ${startDate.toLocaleDateString()}</p>
+                <p><strong>Time:</strong> ${startDate.toLocaleTimeString()} - ${endDate.toLocaleTimeString()}</p>
+                ${booking.description ? `<p><strong>Description:</strong> ${booking.description}</p>` : ''}
+                <p><strong>Organizer:</strong> ${user?.firstName} ${user?.lastName} (${user?.email})</p>
+              `;
+
+              await transporter.sendMail({
+                from: `"${emailSettings.fromName}" <${emailSettings.fromEmail}>`,
+                to: participantEmail,
+                subject: `Meeting Invitation: ${booking.title}`,
+                html: emailContent,
+              });
+            }
+          }
+        } catch (emailError) {
+          console.error('Error sending participant notifications:', emailError);
+          // Don't fail the booking creation if email fails
+        }
+      }
+      
       res.json(booking);
     } catch (error) {
       console.error("Error creating booking:", error);

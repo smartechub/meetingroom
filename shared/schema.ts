@@ -59,9 +59,12 @@ export const bookings = pgTable("bookings", {
   userId: varchar("user_id").notNull(),
   startDateTime: timestamp("start_date_time").notNull(),
   endDateTime: timestamp("end_date_time").notNull(),
+  participants: jsonb("participants").default("[]"), // Array of email addresses
   repeatType: varchar("repeat_type").default("none"), // none, daily, weekly, custom
   repeatConfig: jsonb("repeat_config"), // Configuration for repeating bookings
+  customDays: jsonb("custom_days").default("[]"), // Array of weekday numbers for custom repeat
   attachmentUrl: varchar("attachment_url"),
+  attachmentName: varchar("attachment_name"),
   remindMe: boolean("remind_me").default(false),
   reminderTime: integer("reminder_time").default(15), // minutes before
   status: varchar("status").default("confirmed"), // confirmed, cancelled, pending

@@ -9,7 +9,7 @@ import Layout from "@/components/Layout";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import Dashboard from "@/components/Dashboard";
-import BookingForm from "@/components/BookingForm";
+import AdvancedBookingForm from "@/components/AdvancedBookingForm";
 import CalendarView from "@/components/CalendarView";
 import MyBookings from "@/components/MyBookings";
 import UserManagement from "@/components/UserManagement";
@@ -55,7 +55,7 @@ function Router() {
           </Route>
           <Route path="/book">
             <Layout>
-              <BookingForm />
+              <AdvancedBookingForm />
             </Layout>
           </Route>
           <Route path="/calendar">
