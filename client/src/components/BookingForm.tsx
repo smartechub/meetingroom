@@ -482,6 +482,7 @@ export default function BookingForm() {
         })()}
         onSelect={(roomId) => form.setValue('roomId', roomId)}
         selectedRoomId={form.watch('roomId')}
+        hideUnavailable={Array.isArray(roomAvailability) && roomAvailability.length > 0}
       />
     </div>
   );
