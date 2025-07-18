@@ -87,6 +87,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check room availability for a specific time slot
+  app.post('/api/rooms/availability', isAuthenticated, async (req, res) => {
+    try {
+      const { startDateTime, endDateTime } = req.body;
+      
+      if (!startDateTime || !endDateTime) {
+        return res.status(400).json({ message: "Start and end date times are required" });
+      }
+      
+      const start = new Date(startDateTime);
+      const end = new Date(endDateTime);
+      
+      const rooms = await storage.getAllRooms();
+      const roomAvailability = [];
+      
+      for (const room of rooms) {
+        const hasConflict = await storage.checkBookingConflict(room.id, start, end);
+        roomAvailability.push({
+          ...room,
+          available: !hasConflict,
+          conflictReason: hasConflict ? 'Already booked for this time slot' : null
+        });
+      }
+      
+      res.json(roomAvailability);
+    } catch (error) {
+      console.error("Error checking room availability:", error);
+      res.status(500).json({ message: "Failed to check room availability" });
+    }
+  });
+
   app.post('/api/rooms', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);

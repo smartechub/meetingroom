@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,8 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CloudUpload, Calendar, Clock, MapPin } from "lucide-react";
+import { CloudUpload, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useLocation } from "wouter";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const bookingSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -34,6 +35,15 @@ export default function BookingForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [roomAvailability, setRoomAvailability] = useState<Array<{
+    id: number;
+    name: string;
+    capacity: number;
+    description: string;
+    available: boolean;
+    conflictReason: string | null;
+  }>>([]);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
 
   const { data: rooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ['/api/rooms'],
@@ -52,6 +62,42 @@ export default function BookingForm() {
       reminderTime: 15,
     },
   });
+
+  // Function to check room availability
+  const checkRoomAvailability = async (startDateTime: string, endDateTime: string) => {
+    if (!startDateTime || !endDateTime) {
+      setRoomAvailability([]);
+      return;
+    }
+
+    setCheckingAvailability(true);
+    try {
+      const response = await apiRequest('/api/rooms/availability', {
+        method: 'POST',
+        body: JSON.stringify({ startDateTime, endDateTime })
+      });
+      const availability = await response.json();
+      setRoomAvailability(availability);
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      setRoomAvailability([]);
+    } finally {
+      setCheckingAvailability(false);
+    }
+  };
+
+  // Watch for changes in date/time fields
+  useEffect(() => {
+    const subscription = form.watch((values, { name }) => {
+      if (name === 'startDateTime' || name === 'endDateTime') {
+        const { startDateTime, endDateTime } = values;
+        if (startDateTime && endDateTime) {
+          checkRoomAvailability(startDateTime, endDateTime);
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData & { attachmentUrl?: string }) => {
@@ -92,35 +138,20 @@ export default function BookingForm() {
     },
   });
 
-  const conflictCheckMutation = useMutation({
-    mutationFn: async ({ roomId, startDateTime, endDateTime }: { roomId: string, startDateTime: string, endDateTime: string }) => {
-      const response = await apiRequest('/api/bookings/check-conflict', {
-        method: 'POST',
-        body: JSON.stringify({
-          roomId: parseInt(roomId),
-          startDateTime,
-          endDateTime,
-        })
-      });
-      return response.json();
-    },
-  });
+
 
   const onSubmit = async (data: BookingFormData) => {
-    // Check for conflicts first
-    const conflictCheck = await conflictCheckMutation.mutateAsync({
-      roomId: data.roomId,
-      startDateTime: data.startDateTime,
-      endDateTime: data.endDateTime,
-    });
-
-    if (conflictCheck.hasConflict) {
-      toast({
-        title: "Booking Conflict",
-        description: "This room is already booked for the selected time period",
-        variant: "destructive",
-      });
-      return;
+    // Check if selected room is available
+    if (roomAvailability.length > 0) {
+      const selectedRoom = roomAvailability.find(room => room.id.toString() === data.roomId);
+      if (selectedRoom && !selectedRoom.available) {
+        toast({
+          title: "Room Unavailable",
+          description: "The selected room is not available for this time slot. Please choose a different room or time.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     let attachmentUrl;
@@ -191,25 +222,96 @@ export default function BookingForm() {
 
                 <div className="space-y-2">
                   <Label htmlFor="roomId">Select Room *</Label>
-                  <Select onValueChange={(value) => form.setValue('roomId', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a room..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roomsLoading ? (
-                        <SelectItem value="loading" disabled>Loading rooms...</SelectItem>
-                      ) : (
-                        rooms.map((room: any) => (
-                          <SelectItem key={room.id} value={room.id.toString()}>
-                            <div className="flex items-center space-x-2">
-                              <MapPin className="w-4 h-4" />
-                              <span>{room.name} ({room.capacity} people)</span>
+                  {checkingAvailability && (
+                    <Alert>
+                      <AlertCircle className="w-4 h-4" />
+                      <AlertDescription>
+                        Checking room availability for your selected time...
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {roomAvailability.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="text-sm text-gray-600 dark:text-slate-400 mb-3">
+                        Select an available room below. Green indicates the room is available, red indicates it's already booked.
+                      </div>
+                      {roomAvailability.map((room) => (
+                        <div
+                          key={room.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            room.available
+                              ? 'border-green-200 bg-green-50 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20'
+                              : 'border-red-200 bg-red-50 cursor-not-allowed dark:border-red-800 dark:bg-red-900/20'
+                          } ${
+                            form.watch('roomId') === room.id.toString()
+                              ? 'ring-2 ring-blue-500'
+                              : ''
+                          }`}
+                          onClick={() => {
+                            if (room.available) {
+                              form.setValue('roomId', room.id.toString());
+                            }
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <MapPin className="w-4 h-4 text-gray-500" />
+                              <div>
+                                <div className="font-medium">{room.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  Capacity: {room.capacity} people
+                                </div>
+                                {room.description && (
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    {room.description}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                            <div className="flex items-center space-x-2">
+                              {room.available ? (
+                                <div className="flex items-center space-x-1 text-green-600">
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Available</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-1 text-red-600">
+                                  <XCircle className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Unavailable</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {!room.available && room.conflictReason && (
+                            <div className="text-xs text-red-600 mt-1">
+                              {room.conflictReason}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Select onValueChange={(value) => form.setValue('roomId', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a room..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomsLoading ? (
+                          <SelectItem value="loading" disabled>Loading rooms...</SelectItem>
+                        ) : (
+                          rooms.map((room: any) => (
+                            <SelectItem key={room.id} value={room.id.toString()}>
+                              <div className="flex items-center space-x-2">
+                                <MapPin className="w-4 h-4" />
+                                <span>{room.name} ({room.capacity} people)</span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
                   {form.formState.errors.roomId && (
                     <p className="text-sm text-red-600">{form.formState.errors.roomId.message}</p>
                   )}
