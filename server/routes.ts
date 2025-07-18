@@ -489,6 +489,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User profile routes
+  app.put('/api/auth/change-password', isAuthenticated, async (req: any, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters" });
+      }
+      
+      // Get current user
+      const user = await storage.getUser(req.user.id);
+      if (!user || !user.passwordHash) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Verify current password
+      const bcrypt = await import("bcrypt");
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash new password
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      
+      // Update password
+      await storage.updateUser(req.user.id, { passwordHash: newPasswordHash });
+      
+      await createAuditLog(req, 'update', 'user', req.user.id, { action: "Changed password" });
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  app.put('/api/auth/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const { firstName, lastName } = req.body;
+      
+      if (!firstName || !lastName) {
+        return res.status(400).json({ message: "First name and last name are required" });
+      }
+      
+      const updatedUser = await storage.updateUser(req.user.id, { firstName, lastName });
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      await createAuditLog(req, 'update', 'user', req.user.id, { firstName, lastName });
+      
+      // Remove password hash from response
+      const { passwordHash: _, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // Password reset routes
   app.post('/api/auth/forgot-password', async (req, res) => {
     try {

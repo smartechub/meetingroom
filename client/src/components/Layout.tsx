@@ -1,11 +1,21 @@
+import { useState } from "react";
+import * as React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "./ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Calendar, 
   CalendarPlus, 
@@ -21,8 +31,24 @@ import {
   Moon,
   Mail,
   BarChart3,
-  RefreshCw
+  RefreshCw,
+  User,
+  Lock
 } from "lucide-react";
+
+const profileUpdateSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -32,11 +58,94 @@ export default function Layout({ children }: LayoutProps) {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [location, navigate] = useLocation();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const profileForm = useForm<z.infer<typeof profileUpdateSchema>>({
+    resolver: zodResolver(profileUpdateSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+    },
+  });
+
+  // Update form values when user data changes or dialog opens
+  React.useEffect(() => {
+    if (user && isProfileOpen) {
+      profileForm.reset({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+      });
+    }
+  }, [user, isProfileOpen, profileForm]);
+
+  const passwordForm = useForm<z.infer<typeof passwordChangeSchema>>({
+    resolver: zodResolver(passwordChangeSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
     onSuccess: () => {
       window.location.href = "/";
+    },
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof profileUpdateSchema>) => {
+      const response = await apiRequest('/api/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      setIsProfileOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof passwordChangeSchema>) => {
+      const response = await apiRequest('/api/auth/change-password', {
+        method: 'PUT',
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword
+        })
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+      passwordForm.reset();
+      setIsProfileOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
     },
   });
 
@@ -179,9 +288,149 @@ export default function Layout({ children }: LayoutProps) {
                   3
                 </span>
               </Button>
-              <Button variant="ghost" size="sm">
-                <Settings className="w-5 h-5" />
-              </Button>
+              <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Settings className="w-5 h-5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Profile Settings</DialogTitle>
+                  </DialogHeader>
+                  <Tabs defaultValue="profile" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="profile">
+                        <User className="w-4 h-4 mr-2" />
+                        Profile
+                      </TabsTrigger>
+                      <TabsTrigger value="password">
+                        <Lock className="w-4 h-4 mr-2" />
+                        Password
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="profile" className="space-y-4">
+                      <div className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                        <Avatar className="w-16 h-16">
+                          <AvatarImage src={user?.profileImageUrl || ''} alt={user?.firstName || ''} />
+                          <AvatarFallback className="text-lg">
+                            {user?.firstName?.[0]}{user?.lastName?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-semibold text-lg">{user?.firstName} {user?.lastName}</h3>
+                          <p className="text-sm text-gray-600 dark:text-slate-400">{user?.email}</p>
+                          <p className="text-sm text-gray-500 dark:text-slate-500 capitalize">Role: {user?.role}</p>
+                        </div>
+                      </div>
+                      
+                      <Form {...profileForm}>
+                        <form onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))} className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={profileForm.control}
+                              name="firstName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>First Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="John" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={profileForm.control}
+                              name="lastName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Last Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Doe" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsProfileOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button type="submit" disabled={updateProfileMutation.isPending}>
+                              {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </TabsContent>
+                    
+                    <TabsContent value="password" className="space-y-4">
+                      <Form {...passwordForm}>
+                        <form onSubmit={passwordForm.handleSubmit((data) => changePasswordMutation.mutate(data))} className="space-y-4">
+                          <FormField
+                            control={passwordForm.control}
+                            name="currentPassword"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Current Password</FormLabel>
+                                <FormControl>
+                                  <Input type="password" placeholder="Enter current password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={passwordForm.control}
+                            name="newPassword"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>New Password</FormLabel>
+                                <FormControl>
+                                  <Input type="password" placeholder="Enter new password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={passwordForm.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Confirm New Password</FormLabel>
+                                <FormControl>
+                                  <Input type="password" placeholder="Confirm new password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsProfileOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button type="submit" disabled={changePasswordMutation.isPending}>
+                              {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </TabsContent>
+                  </Tabs>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </header>
