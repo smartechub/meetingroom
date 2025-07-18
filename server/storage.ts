@@ -260,17 +260,25 @@ export class DatabaseStorage implements IStorage {
       eq(bookings.roomId, roomId),
       eq(bookings.status, "confirmed"),
       or(
+        // Case 1: Existing booking starts within the new booking time range
         and(
           gte(bookings.startDateTime, startTime),
-          lte(bookings.startDateTime, endTime)
+          lt(bookings.startDateTime, endTime)
         ),
+        // Case 2: Existing booking ends within the new booking time range
         and(
-          gte(bookings.endDateTime, startTime),
+          gt(bookings.endDateTime, startTime),
           lte(bookings.endDateTime, endTime)
         ),
+        // Case 3: Existing booking completely encompasses the new booking
         and(
           lte(bookings.startDateTime, startTime),
           gte(bookings.endDateTime, endTime)
+        ),
+        // Case 4: New booking completely encompasses an existing booking
+        and(
+          gte(bookings.startDateTime, startTime),
+          lte(bookings.endDateTime, endTime)
         )
       )
     );
