@@ -138,13 +138,14 @@ export default function AdvancedBookingForm() {
           endDateTime,
         }),
       });
-      console.log('AdvancedBookingForm - Room availability response:', response);
+      const data = await response.json();
+      console.log('AdvancedBookingForm - Room availability response:', data);
       // Ensure we have an array response
-      if (Array.isArray(response)) {
-        setRoomAvailability(response);
-        console.log('AdvancedBookingForm - Set room availability to:', response);
+      if (Array.isArray(data)) {
+        setRoomAvailability(data);
+        console.log('AdvancedBookingForm - Set room availability to:', data);
       } else {
-        console.error('API returned non-array response:', response);
+        console.error('API returned non-array response:', data);
         setRoomAvailability([]);
       }
     } catch (error) {
