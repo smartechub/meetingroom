@@ -299,7 +299,7 @@ export default function Layout({ children }: LayoutProps) {
                     <DialogTitle>Profile Settings</DialogTitle>
                   </DialogHeader>
                   <Tabs defaultValue="profile" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
                       <TabsTrigger value="profile">
                         <User className="w-4 h-4 mr-2" />
                         Profile
@@ -308,6 +308,12 @@ export default function Layout({ children }: LayoutProps) {
                         <Lock className="w-4 h-4 mr-2" />
                         Password
                       </TabsTrigger>
+                      {isAdmin && (
+                        <TabsTrigger value="administration">
+                          <Settings className="w-4 h-4 mr-2" />
+                          Admin
+                        </TabsTrigger>
+                      )}
                     </TabsList>
                     
                     <TabsContent value="profile" className="space-y-4">
@@ -428,6 +434,42 @@ export default function Layout({ children }: LayoutProps) {
                         </form>
                       </Form>
                     </TabsContent>
+                    
+                    {isAdmin && (
+                      <TabsContent value="administration" className="space-y-4">
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Administrative Tools</h3>
+                          <p className="text-sm text-blue-700 dark:text-blue-200">
+                            Quick access to system administration features
+                          </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-3">
+                          {adminNavigation.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                              <Button
+                                key={item.name}
+                                variant="outline"
+                                className="justify-start h-auto p-4 flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-slate-800"
+                                onClick={() => {
+                                  navigate(item.href);
+                                  setIsProfileOpen(false);
+                                }}
+                              >
+                                <Icon className="w-5 h-5 text-gray-600 dark:text-slate-400" />
+                                <div className="text-left">
+                                  <div className="font-medium">{item.name}</div>
+                                  <div className="text-sm text-gray-500 dark:text-slate-400">
+                                    {getAdminToolDescription(item.name)}
+                                  </div>
+                                </div>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </TabsContent>
+                    )}
                   </Tabs>
                 </DialogContent>
               </Dialog>
@@ -468,4 +510,15 @@ function getPageSubtitle(location: string): string {
     '/audit': 'View system activity and changes',
   };
   return subtitles[location] || 'Welcome back';
+}
+
+function getAdminToolDescription(toolName: string): string {
+  const descriptions: Record<string, string> = {
+    'User Management': 'Manage user accounts and permissions',
+    'Room Management': 'Add, edit, and manage meeting rooms',
+    'Email Settings': 'Configure email notifications and SMTP',
+    'Analytics': 'View usage statistics and reports',
+    'Audit Log': 'Monitor system activity and changes',
+  };
+  return descriptions[toolName] || 'Administrative tool';
 }
