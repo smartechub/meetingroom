@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   ClipboardList, 
   User, 
@@ -15,7 +17,8 @@ import {
   Edit,
   Trash2,
   Filter,
-  Activity
+  Activity,
+  Eye
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +29,7 @@ export default function AuditLog() {
   const [actionFilter, setActionFilter] = useState("all");
   const [resourceFilter, setResourceFilter] = useState("all");
   const [limit, setLimit] = useState(100);
+  const [selectedLog, setSelectedLog] = useState<any>(null);
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['/api/audit-logs', { limit }],
@@ -262,25 +266,117 @@ export default function AuditLog() {
                         </div>
                       </div>
 
-                      <div className="text-right">
-                        <p className="text-sm text-gray-800 dark:text-white">
-                          {format(new Date(log.timestamp), 'MMM dd, yyyy')}
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-slate-400">
-                          {format(new Date(log.timestamp), 'HH:mm:ss')}
-                        </p>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-right">
+                          <p className="text-sm text-gray-800 dark:text-white">
+                            {format(new Date(log.timestamp), 'MMM dd, yyyy')}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-slate-400">
+                            {format(new Date(log.timestamp), 'HH:mm:ss')}
+                          </p>
+                        </div>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 px-3">
+                              <Eye className="w-4 h-4 mr-1" />
+                              Details
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center space-x-2">
+                                {getActionIcon(log.action)}
+                                <span>Audit Log Details</span>
+                              </DialogTitle>
+                            </DialogHeader>
+                            
+                            <div className="space-y-6">
+                              {/* Basic Information */}
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">Action</h4>
+                                  <div className="flex items-center space-x-2">
+                                    {getActionIcon(log.action)}
+                                    <Badge className={getActionColor(log.action)}>
+                                      {log.action}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">Resource</h4>
+                                  <div className="flex items-center space-x-2">
+                                    {getResourceIcon(log.resourceType)}
+                                    <Badge className={getResourceColor(log.resourceType)}>
+                                      {log.resourceType}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">Timestamp</h4>
+                                  <p className="text-sm text-gray-800 dark:text-white">
+                                    {format(new Date(log.timestamp), 'PPpp')}
+                                  </p>
+                                </div>
+                                
+                                <div>
+                                  <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">Log ID</h4>
+                                  <p className="text-sm text-gray-800 dark:text-white">#{log.id}</p>
+                                </div>
+                              </div>
+                              
+                              {/* User Information */}
+                              <div>
+                                <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">User Information</h4>
+                                <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                                  <Avatar className="w-8 h-8">
+                                    <AvatarFallback className="text-sm">
+                                      {log.userFirstName?.[0]}{log.userLastName?.[0]}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-800 dark:text-white">
+                                      {log.userFirstName} {log.userLastName}
+                                    </p>
+                                    <p className="text-xs text-gray-600 dark:text-slate-400">
+                                      {log.userEmail}
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {log.userRole}
+                                  </Badge>
+                                </div>
+                              </div>
+                              
+                              {/* Resource Details */}
+                              {log.resourceId && (
+                                <div>
+                                  <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">Resource ID</h4>
+                                  <p className="text-sm text-gray-800 dark:text-white font-mono bg-gray-50 dark:bg-slate-800/50 p-2 rounded">
+                                    {log.resourceId}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Action Details */}
+                              {log.details && (
+                                <div>
+                                  <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">Full Details</h4>
+                                  <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4">
+                                    <pre className="text-xs text-gray-700 dark:text-slate-300 whitespace-pre-wrap overflow-x-auto">
+                                      {JSON.stringify(log.details, null, 2)}
+                                    </pre>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
 
-                    {/* Show additional details if available */}
-                    {log.details && (
-                      <div className="mt-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
-                        <p className="text-xs text-gray-600 dark:text-slate-400 font-medium mb-1">Details:</p>
-                        <pre className="text-xs text-gray-700 dark:text-slate-300 whitespace-pre-wrap">
-                          {JSON.stringify(log.details, null, 2)}
-                        </pre>
-                      </div>
-                    )}
+
                   </CardContent>
                 </Card>
               ))}
