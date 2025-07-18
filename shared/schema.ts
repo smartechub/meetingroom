@@ -118,12 +118,25 @@ export const calendarSync = pgTable("calendar_sync", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  type: varchar("type").notNull(), // booking, room, user, system, email
+  isRead: boolean("is_read").default(false),
+  relatedId: varchar("related_id"), // ID of related booking, room, etc.
+  relatedType: varchar("related_type"), // booking, room, user, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   bookings: many(bookings),
   auditLogs: many(auditLogs),
   calendarSync: many(calendarSync),
   passwordResetTokens: many(passwordResetTokens),
+  notifications: many(notifications),
 }));
 
 export const roomsRelations = relations(rooms, ({ many }) => ({
@@ -158,6 +171,13 @@ export const calendarSyncRelations = relations(calendarSync, ({ one }) => ({
 export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
   user: one(users, {
     fields: [passwordResetTokens.userId],
+    references: [users.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
     references: [users.id],
   }),
 }));
@@ -215,6 +235,11 @@ export const insertCalendarSyncSchema = createInsertSchema(calendarSync).omit({
   updatedAt: true,
 });
 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -230,6 +255,8 @@ export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
 export type CalendarSync = typeof calendarSync.$inferSelect;
 export type InsertCalendarSync = z.infer<typeof insertCalendarSyncSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 // Booking with relations
 export type BookingWithRelations = Booking & {

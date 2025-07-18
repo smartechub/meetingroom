@@ -37,6 +37,7 @@ import {
   Lock
 } from "lucide-react";
 import lightLogo from "@assets/Light_Logo_1752837156719.png";
+import NotificationDropdown from "@/components/NotificationDropdown";
 
 const profileUpdateSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -292,12 +293,7 @@ export default function Layout({ children }: LayoutProps) {
                 />
                 <Moon className="w-4 h-4 text-gray-500 dark:text-slate-400" />
               </div>
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
-                  3
-                </span>
-              </Button>
+              <NotificationDropdown />
               <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
                 <DialogTrigger asChild>
                   <Button variant="ghost" size="sm">
