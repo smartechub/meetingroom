@@ -61,6 +61,8 @@ export default function AuditLog() {
         return <LogIn className="w-4 h-4 text-green-600" />;
       case 'logout':
         return <LogOut className="w-4 h-4 text-gray-600" />;
+      case 'view':
+        return <Activity className="w-4 h-4 text-blue-500" />;
       default:
         return <Activity className="w-4 h-4 text-gray-600" />;
     }
@@ -162,6 +164,7 @@ export default function AuditLog() {
                 <SelectItem value="create">Create</SelectItem>
                 <SelectItem value="update">Update</SelectItem>
                 <SelectItem value="delete">Delete</SelectItem>
+                <SelectItem value="view">View</SelectItem>
                 <SelectItem value="login">Login</SelectItem>
                 <SelectItem value="logout">Logout</SelectItem>
               </SelectContent>
@@ -175,6 +178,8 @@ export default function AuditLog() {
                 <SelectItem value="user">Users</SelectItem>
                 <SelectItem value="room">Rooms</SelectItem>
                 <SelectItem value="booking">Bookings</SelectItem>
+                <SelectItem value="dashboard">Dashboard</SelectItem>
+                <SelectItem value="audit-logs">Audit Logs</SelectItem>
               </SelectContent>
             </Select>
             <Select value={limit.toString()} onValueChange={(value) => setLimit(parseInt(value))}>
@@ -226,9 +231,19 @@ export default function AuditLog() {
                           <p className="text-sm font-medium text-gray-800 dark:text-white">
                             {formatLogMessage(log)}
                           </p>
-                          <p className="text-xs text-gray-600 dark:text-slate-400">
-                            User ID: {log.userId}
-                          </p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Avatar className="w-5 h-5">
+                              <AvatarFallback className="text-xs">
+                                {log.userFirstName?.[0]}{log.userLastName?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <p className="text-xs text-gray-600 dark:text-slate-400">
+                              {log.userFirstName} {log.userLastName} ({log.userEmail})
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              {log.userRole}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
 

@@ -55,6 +55,7 @@ export interface IStorage {
   // Audit log operations
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(limit?: number): Promise<AuditLog[]>;
+  getUserAuditLogs(userId: string, limit?: number): Promise<AuditLog[]>;
   
   // Dashboard stats
   getDashboardStats(): Promise<{
@@ -304,10 +305,45 @@ export class DatabaseStorage implements IStorage {
     return auditLog;
   }
 
-  async getAuditLogs(limit: number = 100): Promise<AuditLog[]> {
+  async getAuditLogs(limit: number = 100): Promise<any[]> {
     return await db
-      .select()
+      .select({
+        id: auditLogs.id,
+        userId: auditLogs.userId,
+        action: auditLogs.action,
+        resourceType: auditLogs.resourceType,
+        resourceId: auditLogs.resourceId,
+        details: auditLogs.details,
+        timestamp: auditLogs.timestamp,
+        userEmail: users.email,
+        userFirstName: users.firstName,
+        userLastName: users.lastName,
+        userRole: users.role,
+      })
       .from(auditLogs)
+      .leftJoin(users, eq(auditLogs.userId, users.id))
+      .orderBy(desc(auditLogs.timestamp))
+      .limit(limit);
+  }
+
+  async getUserAuditLogs(userId: string, limit: number = 100): Promise<any[]> {
+    return await db
+      .select({
+        id: auditLogs.id,
+        userId: auditLogs.userId,
+        action: auditLogs.action,
+        resourceType: auditLogs.resourceType,
+        resourceId: auditLogs.resourceId,
+        details: auditLogs.details,
+        timestamp: auditLogs.timestamp,
+        userEmail: users.email,
+        userFirstName: users.firstName,
+        userLastName: users.lastName,
+        userRole: users.role,
+      })
+      .from(auditLogs)
+      .leftJoin(users, eq(auditLogs.userId, users.id))
+      .where(eq(auditLogs.userId, userId))
       .orderBy(desc(auditLogs.timestamp))
       .limit(limit);
   }

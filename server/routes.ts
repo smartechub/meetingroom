@@ -44,6 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
+      await createAuditLog(req, 'view', 'user', userId, { action: 'fetch_profile' });
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -55,6 +56,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
     try {
       const stats = await storage.getDashboardStats();
+      await createAuditLog(req, 'view', 'dashboard', undefined, { 
+        action: 'view_dashboard_stats',
+        stats: stats
+      });
       res.json(stats);
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -63,9 +68,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Room routes
-  app.get('/api/rooms', isAuthenticated, async (req, res) => {
+  app.get('/api/rooms', isAuthenticated, async (req: any, res) => {
     try {
       const rooms = await storage.getAllRooms();
+      await createAuditLog(req, 'view', 'room', undefined, { 
+        action: 'view_all_rooms',
+        count: rooms.length
+      });
       res.json(rooms);
     } catch (error) {
       console.error("Error fetching rooms:", error);
@@ -73,13 +82,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/rooms/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/rooms/:id', isAuthenticated, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
       const room = await storage.getRoom(id);
       if (!room) {
         return res.status(404).json({ message: "Room not found" });
       }
+      await createAuditLog(req, 'view', 'room', id.toString(), { 
+        action: 'view_room_details',
+        roomName: room.name
+      });
       res.json(room);
     } catch (error) {
       console.error("Error fetching room:", error);
@@ -184,8 +197,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (user?.role === 'admin') {
         bookings = await storage.getAllBookings();
+        await createAuditLog(req, 'view', 'booking', undefined, { 
+          action: 'view_all_bookings',
+          count: bookings.length,
+          userRole: 'admin'
+        });
       } else {
         bookings = await storage.getUserBookings(req.user.id);
+        await createAuditLog(req, 'view', 'booking', undefined, { 
+          action: 'view_my_bookings',
+          count: bookings.length
+        });
       }
       
       res.json(bookings);
@@ -198,6 +220,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/bookings/my', isAuthenticated, async (req: any, res) => {
     try {
       const bookings = await storage.getUserBookings(req.user.id);
+      await createAuditLog(req, 'view', 'booking', undefined, { 
+        action: 'view_my_bookings_page',
+        count: bookings.length
+      });
       res.json(bookings);
     } catch (error) {
       console.error("Error fetching user bookings:", error);
@@ -217,6 +243,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin' && booking.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
+      
+      await createAuditLog(req, 'view', 'booking', id.toString(), { 
+        action: 'view_booking_details',
+        bookingTitle: booking.title,
+        roomId: booking.roomId
+      });
       
       res.json(booking);
     } catch (error) {
@@ -462,20 +494,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Audit log routes (Admin only)
+  // Audit log routes
   app.get('/api/audit-logs', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
       }
       
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
-      const logs = await storage.getAuditLogs(limit);
+      
+      // Create audit log for viewing audit logs
+      await createAuditLog(req, 'view', 'audit-logs', undefined, { 
+        userRole: user.role,
+        viewType: user.role === 'admin' ? 'all' : 'own'
+      });
+      
+      let logs;
+      if (user.role === 'admin') {
+        // Admin can see all logs
+        logs = await storage.getAuditLogs(limit);
+      } else {
+        // Regular users can only see their own logs
+        logs = await storage.getUserAuditLogs(req.user.id, limit);
+      }
+      
       res.json(logs);
     } catch (error) {
       console.error("Error fetching audit logs:", error);
       res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+
+  // Track audit log actions
+  app.post('/api/audit-logs/track', isAuthenticated, async (req: any, res) => {
+    try {
+      const { action, resourceType, resourceId, details } = req.body;
+      
+      await createAuditLog(req, action, resourceType, resourceId, details);
+      
+      res.json({ message: "Action tracked successfully" });
+    } catch (error) {
+      console.error("Error tracking audit log:", error);
+      res.status(500).json({ message: "Failed to track action" });
     }
   });
 

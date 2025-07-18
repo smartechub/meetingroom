@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { 
   Calendar, 
   CalendarPlus, 
@@ -62,6 +63,7 @@ export default function Layout({ children }: LayoutProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { trackNavigation, trackAction } = useAuditLog();
 
   const profileForm = useForm<z.infer<typeof profileUpdateSchema>>({
     resolver: zodResolver(profileUpdateSchema),
@@ -191,7 +193,10 @@ export default function Layout({ children }: LayoutProps) {
             return (
               <button
                 key={item.name}
-                onClick={() => navigate(item.href)}
+                onClick={() => {
+                  navigate(item.href);
+                  trackNavigation(item.name, { href: item.href, section: 'main-navigation' });
+                }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors ${
                   isCurrentPage(item.href)
                     ? 'text-primary bg-blue-50 dark:bg-blue-900/20'
@@ -215,7 +220,10 @@ export default function Layout({ children }: LayoutProps) {
                 return (
                   <button
                     key={item.name}
-                    onClick={() => navigate(item.href)}
+                    onClick={() => {
+                      navigate(item.href);
+                      trackNavigation(item.name, { href: item.href, section: 'admin-navigation' });
+                    }}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-colors ${
                       isCurrentPage(item.href)
                         ? 'text-primary bg-blue-50 dark:bg-blue-900/20'
@@ -249,7 +257,10 @@ export default function Layout({ children }: LayoutProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => logoutMutation.mutate()}
+              onClick={() => {
+                trackAction('logout', 'user', user?.id, { page: location });
+                logoutMutation.mutate();
+              }}
               disabled={logoutMutation.isPending}
               className="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
             >
