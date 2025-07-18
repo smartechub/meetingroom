@@ -519,6 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logs = await storage.getUserAuditLogs(req.user.id, limit);
       }
       
+      console.log('Audit logs response:', logs);
       res.json(logs);
     } catch (error) {
       console.error("Error fetching audit logs:", error);

@@ -29,7 +29,22 @@ export default function AuditLog() {
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['/api/audit-logs', { limit }],
+    queryFn: async () => {
+      const response = await fetch(`/api/audit-logs?limit=${limit}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch audit logs');
+      }
+      const data = await response.json();
+      console.log('Audit logs data:', data);
+      return Array.isArray(data) ? data : [];
+    },
     onError: (error) => {
+      console.error('Audit logs error:', error);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
