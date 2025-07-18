@@ -23,7 +23,7 @@ import {
   type InsertCalendarSync,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, asc, ilike, or } from "drizzle-orm";
+import { eq, and, gte, lte, desc, asc, ilike, or, ne } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (updated for email/password auth)
@@ -278,7 +278,7 @@ export class DatabaseStorage implements IStorage {
     if (excludeBookingId) {
       whereCondition = and(
         whereCondition,
-        eq(bookings.id, excludeBookingId)
+        ne(bookings.id, excludeBookingId)
       );
     }
     

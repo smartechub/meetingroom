@@ -135,6 +135,15 @@ The system follows a traditional three-tier architecture with clear separation b
 
 ## Recent Changes
 
+### July 18, 2025 - Room Availability System Enhanced During Migration
+- Verified and enhanced the existing room availability checking system during Replit migration
+- Fixed bug in checkBookingConflict method (excludeBookingId logic corrected from eq to ne)
+- Confirmed server-side conflict checking in booking creation endpoint prevents double bookings
+- Real-time availability checking in frontend shows green/red indicators for room availability
+- System automatically disables unavailable rooms in dropdown when dates/times are selected
+- Both BookingForm and AdvancedBookingForm properly implement availability checking
+- Backend conflict detection prevents overlapping bookings with proper time range validation
+
 ### July 18, 2025 - Booking Conflict Prevention System Implementation
 - Added comprehensive room availability checking system to prevent double bookings
 - Implemented real-time availability endpoint `/api/rooms/availability` that checks conflicts
