@@ -560,7 +560,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email } = req.body;
       
       // Generate reset token
-      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const crypto = await import("crypto");
+      const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 3600000); // 1 hour
       
       // Find user by email
@@ -568,7 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = users.find(u => u.email === email);
       
       if (!user) {
-        // Don't reveal if user exists or not
+        // Don't reveal if user exists or not - but still return success message
         return res.json({ message: "If the email exists, a reset link has been sent" });
       }
       
@@ -578,11 +579,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt,
       });
       
-      // TODO: Send email with reset link
-      res.json({ message: "Password reset link sent to your email" });
+      // Get email settings to send the reset email
+      try {
+        const emailSettings = await storage.getEmailSettings();
+        if (emailSettings && emailSettings.smtpHost) {
+          const nodemailer = await import("nodemailer");
+          
+          // Create transporter with the configured SMTP settings
+          const transporter = nodemailer.createTransporter({
+            host: emailSettings.smtpHost,
+            port: emailSettings.smtpPort || 587,
+            secure: emailSettings.smtpPort === 465, // true for 465, false for other ports
+            auth: {
+              user: emailSettings.smtpUser,
+              pass: emailSettings.smtpPassword,
+            },
+          });
+          
+          // Generate reset link
+          const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
+          
+          // Email content
+          const mailOptions = {
+            from: `"${emailSettings.fromName}" <${emailSettings.fromEmail}>`,
+            to: email,
+            subject: 'Password Reset Request - Room Booking System',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">Password Reset Request</h2>
+                <p>Hello ${user.firstName},</p>
+                <p>You requested to reset your password for the Room Booking System. Click the button below to reset your password:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+                </div>
+                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+                <p><strong>This link will expire in 1 hour.</strong></p>
+                <p>If you didn't request this password reset, please ignore this email.</p>
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                <p style="color: #666; font-size: 12px;">Room Booking System</p>
+              </div>
+            `,
+            text: `
+              Password Reset Request
+              
+              Hello ${user.firstName},
+              
+              You requested to reset your password for the Room Booking System.
+              Please visit this link to reset your password: ${resetUrl}
+              
+              This link will expire in 1 hour.
+              
+              If you didn't request this password reset, please ignore this email.
+            `
+          };
+          
+          // Send email
+          await transporter.sendMail(mailOptions);
+          console.log(`Password reset email sent to ${email}`);
+          
+        } else {
+          // Log token for development if no email configuration
+          console.log(`Password reset token for ${email}: ${token}`);
+        }
+      } catch (emailError) {
+        console.error("Error sending password reset email:", emailError);
+        // Don't reveal email sending failure to user for security
+      }
+      
+      res.json({ message: "If the email exists, a reset link has been sent" });
     } catch (error) {
       console.error("Error handling forgot password:", error);
       res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      // Find valid reset token
+      const resetTokens = await storage.getPasswordResetTokens();
+      const resetToken = resetTokens.find(rt => 
+        rt.token === token && 
+        rt.expiresAt > new Date() && 
+        !rt.usedAt
+      );
+      
+      if (!resetToken) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+      
+      // Hash new password
+      const bcrypt = await import("bcrypt");
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      
+      // Update user password
+      await storage.updateUser(resetToken.userId, { passwordHash });
+      
+      // Mark token as used
+      await storage.markPasswordResetTokenUsed(resetToken.id);
+      
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 

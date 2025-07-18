@@ -71,6 +71,8 @@ export interface IStorage {
   // Password reset operations
   createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken>;
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  getPasswordResetTokens(): Promise<PasswordResetToken[]>;
+  markPasswordResetTokenUsed(id: number): Promise<boolean>;
   deletePasswordResetToken(token: string): Promise<boolean>;
   
   // Calendar sync operations
@@ -398,6 +400,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(passwordResetTokens.token, token))
       .limit(1);
     return result;
+  }
+
+  async getPasswordResetTokens(): Promise<PasswordResetToken[]> {
+    return await db
+      .select()
+      .from(passwordResetTokens)
+      .orderBy(desc(passwordResetTokens.createdAt));
+  }
+
+  async markPasswordResetTokenUsed(id: number): Promise<boolean> {
+    const result = await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   async deletePasswordResetToken(token: string): Promise<boolean> {

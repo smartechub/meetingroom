@@ -20,6 +20,7 @@ import CalendarSync from "@/components/CalendarSync";
 import Analytics from "@/components/Analytics";
 import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -39,6 +40,7 @@ function Router() {
         <>
           <Route path="/" component={Login} />
           <Route path="/forgot-password" component={ForgotPassword} />
+          <Route path="/reset-password" component={ResetPassword} />
         </>
       ) : (
         <Route path="/" component={Home} />
