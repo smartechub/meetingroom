@@ -173,10 +173,19 @@ export default function BookingForm() {
       queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
       navigate('/my-bookings');
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      let errorMessage = "Failed to create booking";
+      
+      // Handle specific error cases
+      if (error.message?.includes("conflict") || error.message?.includes("already booked")) {
+        errorMessage = "This room is already booked for the selected time. Please choose a different time or room.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Booking Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     },

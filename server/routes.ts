@@ -245,7 +245,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (hasConflict) {
-        return res.status(400).json({ message: "Booking conflict detected" });
+        return res.status(400).json({ 
+          message: "Room is already booked for this time slot. Please choose a different time or room." 
+        });
       }
       
       const booking = await storage.createBooking(bookingData);
