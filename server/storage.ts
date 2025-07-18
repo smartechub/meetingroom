@@ -365,23 +365,37 @@ export class DatabaseStorage implements IStorage {
 
   // Email settings operations
   async getEmailSettings(): Promise<EmailSettings | undefined> {
-    const [settings] = await db.select().from(emailSettings).limit(1);
+    const [settings] = await db
+      .select()
+      .from(emailSettings)
+      .orderBy(desc(emailSettings.updatedAt))
+      .limit(1);
     return settings;
   }
 
   async upsertEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings> {
-    const [result] = await db
-      .insert(emailSettings)
-      .values(settings)
-      .onConflictDoUpdate({
-        target: emailSettings.id,
-        set: {
-          ...settings,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return result;
+    // First, try to get existing settings
+    const existing = await this.getEmailSettings();
+    
+    if (existing) {
+      // Update existing record
+      const [result] = await db
+        .update(emailSettings)
+        .set({ 
+          ...settings, 
+          updatedAt: new Date() 
+        })
+        .where(eq(emailSettings.id, existing.id))
+        .returning();
+      return result;
+    } else {
+      // Insert new record
+      const [result] = await db
+        .insert(emailSettings)
+        .values(settings)
+        .returning();
+      return result;
+    }
   }
 
   // Password reset operations

@@ -567,6 +567,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find user by email
       const users = await storage.getAllUsers();
       const user = users.find(u => u.email === email);
+      console.log('User lookup for', email, ':', user ? `Found: ${user.email}` : 'Not found');
       
       if (!user) {
         // Don't reveal if user exists or not - but still return success message
@@ -581,17 +582,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get email settings to send the reset email
       try {
+        console.log('Attempting to get email settings...');
         const emailSettings = await storage.getEmailSettings();
+        console.log('Email settings retrieved:', emailSettings ? `Found: ${emailSettings.smtpHost}:${emailSettings.smtpPort}` : 'Not found');
+        console.log('Full email settings:', emailSettings);
         if (emailSettings && emailSettings.smtpHost) {
           const nodemailer = await import("nodemailer");
           
           // Create transporter with the configured SMTP settings
+          console.log('Creating email transporter with settings:', {
+            host: emailSettings.smtpHost,
+            port: emailSettings.smtpPort,
+            secure: emailSettings.smtpPort === 465,
+            user: emailSettings.smtpUsername
+          });
+          
           const transporter = nodemailer.createTransporter({
             host: emailSettings.smtpHost,
             port: emailSettings.smtpPort || 587,
             secure: emailSettings.smtpPort === 465, // true for 465, false for other ports
             auth: {
-              user: emailSettings.smtpUser,
+              user: emailSettings.smtpUsername,
               pass: emailSettings.smtpPassword,
             },
           });
@@ -635,8 +646,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           
           // Send email
-          await transporter.sendMail(mailOptions);
-          console.log(`Password reset email sent to ${email}`);
+          try {
+            await transporter.sendMail(mailOptions);
+            console.log(`Password reset email sent successfully to ${email} using SMTP: ${emailSettings.smtpHost}:${emailSettings.smtpPort}`);
+          } catch (emailError) {
+            console.error('Failed to send password reset email:', emailError);
+            console.error('SMTP Config:', {
+              host: emailSettings.smtpHost,
+              port: emailSettings.smtpPort,
+              user: emailSettings.smtpUsername
+            });
+            // Don't throw the error to avoid revealing email configuration details
+          }
           
         } else {
           // Log token for development if no email configuration

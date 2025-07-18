@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,17 +50,34 @@ export default function EmailSettings() {
   const form = useForm<EmailSettingsForm>({
     resolver: zodResolver(emailSettingsSchema),
     defaultValues: {
-      smtpHost: emailSettings?.smtpHost || "",
-      smtpPort: emailSettings?.smtpPort || 587,
-      smtpUsername: emailSettings?.smtpUsername || "",
-      smtpPassword: emailSettings?.smtpPassword || "",
-      fromEmail: emailSettings?.fromEmail || "",
-      fromName: emailSettings?.fromName || "Room Booking System",
-      enableBookingNotifications: emailSettings?.enableBookingNotifications ?? true,
-      enableReminders: emailSettings?.enableReminders ?? true,
-      enablePasswordReset: emailSettings?.enablePasswordReset ?? true,
+      smtpHost: "",
+      smtpPort: 587,
+      smtpUsername: "",
+      smtpPassword: "",
+      fromEmail: "",
+      fromName: "Room Booking System",
+      enableBookingNotifications: true,
+      enableReminders: true,
+      enablePasswordReset: true,
     },
   });
+
+  // Reset form when email settings data is loaded
+  React.useEffect(() => {
+    if (emailSettings) {
+      form.reset({
+        smtpHost: emailSettings.smtpHost || "",
+        smtpPort: emailSettings.smtpPort || 587,
+        smtpUsername: emailSettings.smtpUsername || "",
+        smtpPassword: emailSettings.smtpPassword || "",
+        fromEmail: emailSettings.fromEmail || "",
+        fromName: emailSettings.fromName || "Room Booking System",
+        enableBookingNotifications: emailSettings.enableBookingNotifications ?? true,
+        enableReminders: emailSettings.enableReminders ?? true,
+        enablePasswordReset: emailSettings.enablePasswordReset ?? true,
+      });
+    }
+  }, [emailSettings, form]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: EmailSettingsForm) => {

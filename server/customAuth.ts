@@ -35,14 +35,14 @@ export async function setupAuth(app: Express) {
   // Custom login endpoint
   app.post('/api/auth/login', async (req, res) => {
     try {
-      const { userId, password } = req.body;
+      const { email, password } = req.body;
       
-      if (!userId || !password) {
+      if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
       // Find user by email
-      const user = await storage.getUserByEmail(userId);
+      const user = await storage.getUserByEmail(email);
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
