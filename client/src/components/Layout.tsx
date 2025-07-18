@@ -35,6 +35,7 @@ import {
   User,
   Lock
 } from "lucide-react";
+import lightLogo from "@assets/Light_Logo_1752837156719.png";
 
 const profileUpdateSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -174,14 +175,12 @@ export default function Layout({ children }: LayoutProps) {
       <div className="w-64 bg-white dark:bg-slate-800 shadow-lg border-r border-gray-200 dark:border-slate-700 flex flex-col">
         {/* Logo */}
         <div className="p-6 border-b border-gray-200 dark:border-slate-700">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-gray-800 dark:text-white">Room Booking</h2>
-              <p className="text-sm text-gray-600 dark:text-slate-400">Corporate System</p>
-            </div>
+          <div className="flex items-center justify-center">
+            <img 
+              src={lightLogo} 
+              alt="Light Finance Logo" 
+              className="h-12 w-auto object-contain"
+            />
           </div>
         </div>
 
