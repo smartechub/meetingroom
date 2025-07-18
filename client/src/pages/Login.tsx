@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, User, AlertCircle } from "lucide-react";
 
 export default function Login() {
-  const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -23,7 +23,7 @@ export default function Login() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
@@ -64,7 +64,7 @@ export default function Login() {
           <CardHeader>
             <CardTitle>Login</CardTitle>
             <CardDescription>
-              Please enter your user ID and password to continue
+              Please enter your email and password to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -77,15 +77,15 @@ export default function Login() {
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="userId">User ID</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    id="userId"
-                    type="text"
-                    placeholder="Enter your user ID"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     className="pl-10"
                   />
