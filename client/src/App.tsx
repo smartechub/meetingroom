@@ -84,6 +84,11 @@ function Router() {
               <EmailSettings />
             </Layout>
           </Route>
+          <Route path="/calendar-sync/demo">
+            <Layout>
+              <CalendarSyncDemo />
+            </Layout>
+          </Route>
           <Route path="/calendar-sync">
             <Layout>
               <CalendarSync />
@@ -97,11 +102,6 @@ function Router() {
           <Route path="/audit">
             <Layout>
               <AuditLog />
-            </Layout>
-          </Route>
-          <Route path="/calendar-sync/demo">
-            <Layout>
-              <CalendarSyncDemo />
             </Layout>
           </Route>
         </>
