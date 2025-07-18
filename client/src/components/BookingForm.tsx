@@ -236,60 +236,46 @@ export default function BookingForm() {
                       <div className="text-sm text-gray-600 dark:text-slate-400 mb-3">
                         Select an available room below. Green indicates the room is available, red indicates it's already booked.
                       </div>
-                      {roomAvailability.map((room) => (
-                        <div
-                          key={room.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                            room.available
-                              ? 'border-green-200 bg-green-50 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20'
-                              : 'border-red-200 bg-red-50 cursor-not-allowed dark:border-red-800 dark:bg-red-900/20'
-                          } ${
-                            form.watch('roomId') === room.id.toString()
-                              ? 'ring-2 ring-blue-500'
-                              : ''
-                          }`}
-                          onClick={() => {
-                            if (room.available) {
-                              form.setValue('roomId', room.id.toString());
-                            }
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <MapPin className="w-4 h-4 text-gray-500" />
-                              <div>
-                                <div className="font-medium">{room.name}</div>
-                                <div className="text-sm text-gray-500">
-                                  Capacity: {room.capacity} people
+                      <Select onValueChange={(value) => form.setValue('roomId', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a room..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roomAvailability.map((room) => (
+                            <SelectItem 
+                              key={room.id} 
+                              value={room.id.toString()}
+                              disabled={!room.available}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center space-x-2">
+                                  <MapPin className="w-4 h-4" />
+                                  <span>{room.name}</span>
+                                  <span className="text-sm text-gray-500">({room.capacity} people)</span>
                                 </div>
-                                {room.description && (
-                                  <div className="text-xs text-gray-400 mt-1">
-                                    {room.description}
-                                  </div>
-                                )}
+                                <div className="flex items-center space-x-1">
+                                  {room.available ? (
+                                    <div className="flex items-center space-x-1 text-green-600">
+                                      <CheckCircle className="w-4 h-4" />
+                                      <span className="text-sm font-medium">Available</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center space-x-1 text-red-600">
+                                      <XCircle className="w-4 h-4" />
+                                      <span className="text-sm font-medium">Unavailable</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              {room.available ? (
-                                <div className="flex items-center space-x-1 text-green-600">
-                                  <CheckCircle className="w-4 h-4" />
-                                  <span className="text-sm font-medium">Available</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center space-x-1 text-red-600">
-                                  <XCircle className="w-4 h-4" />
-                                  <span className="text-sm font-medium">Unavailable</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {!room.available && room.conflictReason && (
-                            <div className="text-xs text-red-600 mt-1">
-                              {room.conflictReason}
-                            </div>
-                          )}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {roomAvailability.some(room => !room.available) && (
+                        <div className="text-xs text-red-600">
+                          Note: Some rooms are unavailable due to existing bookings for this time slot.
                         </div>
-                      ))}
+                      )}
                     </div>
                   ) : (
                     <Select onValueChange={(value) => form.setValue('roomId', value)}>
