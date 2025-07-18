@@ -99,7 +99,11 @@ function Router() {
               <AuditLog />
             </Layout>
           </Route>
-          <Route path="/calendar-sync/demo" component={CalendarSyncDemo} />
+          <Route path="/calendar-sync/demo">
+            <Layout>
+              <CalendarSyncDemo />
+            </Layout>
+          </Route>
         </>
       )}
       

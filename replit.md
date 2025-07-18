@@ -24,13 +24,13 @@ Default admin credentials: admin@company.com / admin123
 ### Backend Architecture
 - **Runtime**: Node.js with Express server
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Replit Auth with OIDC integration
+- **Authentication**: Custom email/password authentication with bcrypt
 - **Session Management**: Express sessions with PostgreSQL storage
 - **File Uploads**: Multer for handling attachments
 - **API Design**: RESTful API with JSON responses
 
 ### Data Storage
-- **Primary Database**: PostgreSQL via Neon serverless
+- **Primary Database**: PostgreSQL via Replit environment
 - **ORM**: Drizzle ORM for type-safe database operations
 - **Schema Location**: Shared schema definitions in `/shared/schema.ts`
 - **Migrations**: Drizzle Kit for database migrations
@@ -90,8 +90,8 @@ Default admin credentials: admin@company.com / admin123
 ## External Dependencies
 
 ### Database
-- **Neon PostgreSQL**: Serverless PostgreSQL hosting
-- **Connection**: WebSocket-based connection pooling
+- **Replit PostgreSQL**: Managed PostgreSQL hosting
+- **Connection**: Standard PostgreSQL connection pooling
 
 ### Authentication
 - **Custom Authentication**: Email/password with bcrypt hashing
@@ -111,7 +111,7 @@ Default admin credentials: admin@company.com / admin123
 
 ### Development Environment
 - **Server**: Express with Vite middleware
-- **Database**: Neon PostgreSQL with environment variables
+- **Database**: Replit PostgreSQL with environment variables
 - **Authentication**: Custom email/password authentication
 - **Asset Serving**: Vite dev server for client assets
 
@@ -213,4 +213,5 @@ The system follows a traditional three-tier architecture with clear separation b
 - Default admin user created and verified: admin@company.com / admin123
 - Updated login page to remove descriptive text and add Light Finance logo
 - All core features confirmed working: authentication, dashboard, room booking
+- Fixed calendar sync demo page routing issue for proper layout display
 - Project is now fully functional and ready for continued development
