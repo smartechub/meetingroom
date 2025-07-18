@@ -138,7 +138,13 @@ export default function AdvancedBookingForm() {
           endDateTime,
         }),
       });
-      setRoomAvailability(response);
+      // Ensure we have an array response
+      if (Array.isArray(response)) {
+        setRoomAvailability(response);
+      } else {
+        console.error('API returned non-array response:', response);
+        setRoomAvailability([]);
+      }
     } catch (error) {
       console.error('Error checking room availability:', error);
       setRoomAvailability([]);
@@ -209,7 +215,7 @@ export default function AdvancedBookingForm() {
 
   const onSubmit = async (data: BookingFormData) => {
     // Check if selected room is available
-    if (roomAvailability.length > 0) {
+    if (Array.isArray(roomAvailability) && roomAvailability.length > 0) {
       const selectedRoom = roomAvailability.find(room => room.id.toString() === data.roomId);
       if (selectedRoom && !selectedRoom.available) {
         toast({
