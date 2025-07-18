@@ -138,9 +138,11 @@ export default function AdvancedBookingForm() {
           endDateTime,
         }),
       });
+      console.log('AdvancedBookingForm - Room availability response:', response);
       // Ensure we have an array response
       if (Array.isArray(response)) {
         setRoomAvailability(response);
+        console.log('AdvancedBookingForm - Set room availability to:', response);
       } else {
         console.error('API returned non-array response:', response);
         setRoomAvailability([]);

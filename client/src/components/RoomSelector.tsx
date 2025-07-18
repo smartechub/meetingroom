@@ -32,15 +32,17 @@ export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selecte
   const unavailableRooms = rooms.filter(room => !room.available);
   
   // If hideUnavailable is true and we have availability data, show only available rooms
-  const displayRooms = hideUnavailable && rooms.some(room => room.hasOwnProperty('available')) 
+  const hasAvailabilityData = rooms.some(room => room.hasOwnProperty('available'));
+  const displayRooms = hideUnavailable && hasAvailabilityData
     ? availableRooms 
     : rooms;
   
   // Debug logging
   console.log('RoomSelector - hideUnavailable:', hideUnavailable);
-  console.log('RoomSelector - rooms:', rooms);
-  console.log('RoomSelector - availableRooms:', availableRooms);
-  console.log('RoomSelector - displayRooms:', displayRooms);
+  console.log('RoomSelector - rooms.length:', rooms.length);
+  console.log('RoomSelector - availableRooms.length:', availableRooms.length);
+  console.log('RoomSelector - displayRooms.length:', displayRooms.length);
+  console.log('RoomSelector - rooms with availability data:', rooms.filter(r => r.hasOwnProperty('available')).length);
 
   const filterRooms = (roomsList: Room[]) => {
     if (!searchTerm) return roomsList;

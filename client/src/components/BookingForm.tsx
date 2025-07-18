@@ -136,8 +136,14 @@ export default function BookingForm() {
         method: 'POST',
         body: JSON.stringify({ startDateTime, endDateTime })
       });
-      console.log('Room availability response:', response);
-      setRoomAvailability(response);
+      console.log('BookingForm - Room availability response:', response);
+      if (Array.isArray(response)) {
+        setRoomAvailability(response);
+        console.log('BookingForm - Set room availability to:', response);
+      } else {
+        console.error('API returned non-array response:', response);
+        setRoomAvailability([]);
+      }
     } catch (error) {
       console.error('Error checking availability:', error);
       setRoomAvailability([]);

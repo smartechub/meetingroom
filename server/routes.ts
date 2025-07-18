@@ -116,11 +116,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const start = new Date(startDateTime);
       const end = new Date(endDateTime);
       
+      console.log('Room availability check for:', { startDateTime, endDateTime, start, end });
+      
       const rooms = await storage.getAllRooms();
       const roomAvailability = [];
       
       for (const room of rooms) {
         const hasConflict = await storage.checkBookingConflict(room.id, start, end);
+        console.log(`Room ${room.name} (ID: ${room.id}): hasConflict = ${hasConflict}`);
         roomAvailability.push({
           ...room,
           available: !hasConflict,
@@ -128,6 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      console.log('Final room availability response:', roomAvailability);
       res.json(roomAvailability);
     } catch (error) {
       console.error("Error checking room availability:", error);
