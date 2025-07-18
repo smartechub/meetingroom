@@ -136,6 +136,7 @@ export default function BookingForm() {
         method: 'POST',
         body: JSON.stringify({ startDateTime, endDateTime })
       });
+      console.log('Room availability response:', response);
       setRoomAvailability(response);
     } catch (error) {
       console.error('Error checking availability:', error);
