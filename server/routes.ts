@@ -6,6 +6,7 @@ import { insertRoomSchema, insertBookingSchema, updateBookingSchema, insertEmail
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
+import * as nodemailer from "nodemailer";
 
 const upload = multer({
   dest: "uploads/",
@@ -558,6 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/forgot-password', async (req, res) => {
     try {
       const { email } = req.body;
+      console.log('Forgot password request for:', email);
       
       // Generate reset token
       const crypto = await import("crypto");
@@ -587,8 +589,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Email settings retrieved:', emailSettings ? `Found: ${emailSettings.smtpHost}:${emailSettings.smtpPort}` : 'Not found');
         console.log('Full email settings:', emailSettings);
         if (emailSettings && emailSettings.smtpHost) {
-          const nodemailer = await import("nodemailer");
-          
           // Create transporter with the configured SMTP settings
           console.log('Creating email transporter with settings:', {
             host: emailSettings.smtpHost,
@@ -597,7 +597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             user: emailSettings.smtpUsername
           });
           
-          const transporter = nodemailer.createTransporter({
+          const transporter = nodemailer.createTransport({
             host: emailSettings.smtpHost,
             port: emailSettings.smtpPort || 587,
             secure: emailSettings.smtpPort === 465, // true for 465, false for other ports

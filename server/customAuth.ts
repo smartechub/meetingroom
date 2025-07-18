@@ -86,70 +86,9 @@ export async function setupAuth(app: Express) {
     });
   });
 
-  // Password reset request
-  app.post('/api/auth/forgot-password', async (req, res) => {
-    try {
-      const { email } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
 
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        // Don't reveal if user exists
-        return res.json({ message: "If the email exists, a reset link will be sent" });
-      }
 
-      // Generate reset token
-      const token = crypto.randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + 3600000); // 1 hour
 
-      await storage.createPasswordResetToken({
-        userId: user.id,
-        token,
-        expiresAt,
-      });
-
-      // In a real app, you'd send an email here
-      console.log(`Password reset token for ${email}: ${token}`);
-
-      res.json({ message: "If the email exists, a reset link will be sent" });
-    } catch (error) {
-      console.error("Password reset error:", error);
-      res.status(500).json({ message: "Password reset failed" });
-    }
-  });
-
-  // Password reset confirmation
-  app.post('/api/auth/reset-password', async (req, res) => {
-    try {
-      const { token, newPassword } = req.body;
-      
-      if (!token || !newPassword) {
-        return res.status(400).json({ message: "Token and new password are required" });
-      }
-
-      const resetToken = await storage.getPasswordResetToken(token);
-      if (!resetToken || resetToken.expiresAt < new Date()) {
-        return res.status(400).json({ message: "Invalid or expired token" });
-      }
-
-      // Hash new password
-      const passwordHash = await bcrypt.hash(newPassword, 10);
-      
-      // Update user password
-      await storage.updateUserPassword(resetToken.userId, passwordHash);
-      
-      // Delete used token
-      await storage.deletePasswordResetToken(token);
-
-      res.json({ message: "Password reset successfully" });
-    } catch (error) {
-      console.error("Password reset confirmation error:", error);
-      res.status(500).json({ message: "Password reset failed" });
-    }
-  });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
