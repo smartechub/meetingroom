@@ -136,8 +136,7 @@ export default function BookingForm() {
         method: 'POST',
         body: JSON.stringify({ startDateTime, endDateTime })
       });
-      const availability = await response.json();
-      setRoomAvailability(availability);
+      setRoomAvailability(response);
     } catch (error) {
       console.error('Error checking availability:', error);
       setRoomAvailability([]);
@@ -165,7 +164,7 @@ export default function BookingForm() {
         method: 'POST',
         body: JSON.stringify(data)
       });
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       toast({
