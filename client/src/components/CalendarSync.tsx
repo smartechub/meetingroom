@@ -35,7 +35,7 @@ export default function CalendarSync() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar-sync'] });
-      // Redirect to OAuth flow
+      // Redirect to demo page showing OAuth setup requirements
       window.location.href = data.authUrl;
     },
     onError: (error) => {

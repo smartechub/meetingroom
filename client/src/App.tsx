@@ -21,6 +21,7 @@ import Analytics from "@/components/Analytics";
 import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import CalendarSyncDemo from "@/pages/CalendarSyncDemo";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -98,6 +99,7 @@ function Router() {
               <AuditLog />
             </Layout>
           </Route>
+          <Route path="/calendar-sync/demo" component={CalendarSyncDemo} />
         </>
       )}
       

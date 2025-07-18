@@ -812,10 +812,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { provider } = req.params;
       const userId = req.user.id;
       
-      // Generate OAuth URL (mock implementation)
-      const authUrl = `https://oauth.${provider}.com/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code`;
+      // This is a demo feature - in production, you would need to:
+      // 1. Register your application with Microsoft/Google
+      // 2. Configure OAuth credentials
+      // 3. Set up proper redirect URLs
       
-      res.json({ authUrl });
+      if (provider === 'outlook') {
+        // Mock Outlook OAuth URL - would need real Microsoft App ID
+        const authUrl = `/calendar-sync/demo?provider=${provider}&message=Calendar sync requires Microsoft App registration`;
+        res.json({ authUrl });
+      } else if (provider === 'google') {
+        // Mock Google OAuth URL - would need real Google Client ID
+        const authUrl = `/calendar-sync/demo?provider=${provider}&message=Calendar sync requires Google OAuth configuration`;
+        res.json({ authUrl });
+      } else {
+        return res.status(400).json({ message: "Unsupported calendar provider" });
+      }
     } catch (error) {
       console.error("Error connecting calendar:", error);
       res.status(500).json({ message: "Failed to connect calendar" });
