@@ -23,7 +23,7 @@ import {
   type InsertCalendarSync,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, asc, ilike, or, ne } from "drizzle-orm";
+import { eq, and, gte, lte, desc, asc, ilike, or, ne, lt, gt } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (updated for email/password auth)
