@@ -471,11 +471,15 @@ export default function BookingForm() {
       <RoomSelector
         isOpen={isRoomSelectorOpen}
         onClose={() => setIsRoomSelectorOpen(false)}
-        rooms={Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room: any) => ({
-          ...room,
-          available: true,
-          conflictReason: null
-        }))}
+        rooms={(() => {
+          const roomsToPass = Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room: any) => ({
+            ...room,
+            available: true,
+            conflictReason: null
+          }));
+          console.log('Rooms being passed to RoomSelector:', roomsToPass);
+          return roomsToPass;
+        })()}
         onSelect={(roomId) => form.setValue('roomId', roomId)}
         selectedRoomId={form.watch('roomId')}
       />
