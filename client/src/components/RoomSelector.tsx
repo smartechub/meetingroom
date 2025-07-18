@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +60,9 @@ export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selecte
               <X className="w-4 h-4" />
             </Button>
           </div>
+          <DialogDescription className="text-sm text-gray-500">
+            Select a room for your booking. Available rooms are shown with green indicators.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 flex flex-col space-y-4 overflow-hidden">

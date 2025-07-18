@@ -372,13 +372,13 @@ export default function AdvancedBookingForm() {
                   variant="outline"
                   onClick={() => setIsRoomSelectorOpen(true)}
                   className="w-full justify-start text-left h-10 px-3 py-2"
-                  disabled={roomAvailability.length === 0 && checkingAvailability}
+                  disabled={(!Array.isArray(roomAvailability) || roomAvailability.length === 0) && checkingAvailability}
                 >
                   <div className="flex items-center space-x-2">
                     <MapPin className="w-4 h-4" />
                     <span>
                       {form.watch('roomId') ? 
-                        roomAvailability.find(r => r.id.toString() === form.watch('roomId'))?.name || 
+                        (Array.isArray(roomAvailability) ? roomAvailability.find(r => r.id.toString() === form.watch('roomId'))?.name : null) || 
                         rooms.find((r: any) => r.id.toString() === form.watch('roomId'))?.name ||
                         'Selected Room'
                         : 'Choose a room...'
@@ -387,7 +387,7 @@ export default function AdvancedBookingForm() {
                   </div>
                 </Button>
                 
-                {roomAvailability.length > 0 && (
+                {Array.isArray(roomAvailability) && roomAvailability.length > 0 && (
                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                     <div className="flex items-center justify-between">
                       <span>Available rooms: {roomAvailability.filter(room => room.available).length}</span>
@@ -527,7 +527,7 @@ export default function AdvancedBookingForm() {
       <RoomSelector
         isOpen={isRoomSelectorOpen}
         onClose={() => setIsRoomSelectorOpen(false)}
-        rooms={roomAvailability.length > 0 ? roomAvailability : rooms.map((room: any) => ({
+        rooms={Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room: any) => ({
           ...room,
           available: true,
           conflictReason: null
