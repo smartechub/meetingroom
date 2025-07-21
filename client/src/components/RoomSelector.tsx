@@ -31,11 +31,8 @@ export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selecte
   const availableRooms = rooms.filter(room => room.available);
   const unavailableRooms = rooms.filter(room => !room.available);
   
-  // If hideUnavailable is true and we have availability data, show only available rooms
+  // Always show all rooms in "All rooms" tab, regardless of hideUnavailable setting
   const hasAvailabilityData = rooms.some(room => room.hasOwnProperty('available'));
-  const displayRooms = hideUnavailable && hasAvailabilityData
-    ? availableRooms 
-    : rooms;
   
 
 
@@ -96,7 +93,7 @@ export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selecte
                 <TabsTrigger value="all" className="flex items-center space-x-2">
                   <span>All rooms</span>
                   <Badge variant="secondary" className="ml-1">
-                    {filterRooms(displayRooms).length}
+                    {filterRooms(rooms).length}
                   </Badge>
                 </TabsTrigger>
               </TabsList>
@@ -179,8 +176,8 @@ export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selecte
               </TabsContent>
 
               <TabsContent value="all" className="h-full overflow-y-auto space-y-2 mt-2">
-                {filterRooms(displayRooms).length > 0 ? (
-                  filterRooms(displayRooms).map((room) => (
+                {filterRooms(rooms).length > 0 ? (
+                  filterRooms(rooms).map((room) => (
                     <div
                       key={room.id}
                       onClick={() => handleRoomSelect(room)}
