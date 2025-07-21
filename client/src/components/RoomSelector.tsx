@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Users, MapPin, Filter, Check } from 'lucide-react';
+import { Search, Users, MapPin, Filter, Check, Phone, Monitor, Projector, Mic, Camera, Clipboard } from 'lucide-react';
 
 interface Room {
   id: number;
   name: string;
   capacity: number;
   description: string;
+  equipment: string[];
   available: boolean;
   conflictReason: string | null;
 }
@@ -23,6 +24,29 @@ interface RoomSelectorProps {
   selectedRoomId?: string;
   hideUnavailable?: boolean;
 }
+
+const getEquipmentIcon = (equipment: string) => {
+  switch (equipment.toLowerCase()) {
+    case 'telephone':
+    case 'phone':
+      return <Phone className="w-3 h-3" />;
+    case 'tv':
+    case 'monitor':
+      return <Monitor className="w-3 h-3" />;
+    case 'projector':
+      return <Projector className="w-3 h-3" />;
+    case 'mic':
+    case 'microphone':
+    case 'mic & speaker':
+      return <Mic className="w-3 h-3" />;
+    case 'camera':
+      return <Camera className="w-3 h-3" />;
+    case 'whiteboard':
+      return <Clipboard className="w-3 h-3" />;
+    default:
+      return <div className="w-3 h-3 bg-gray-400 rounded-full" />;
+  }
+};
 
 export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selectedRoomId, hideUnavailable = false }: RoomSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -150,13 +174,31 @@ export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selecte
                         </div>
                         <div className="flex-1">
                           <div className="font-medium text-gray-900 dark:text-gray-100">{room.name}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-3">
-                            <div className="flex items-center space-x-1">
-                              <Users className="w-3 h-3" />
-                              <span>{room.capacity}</span>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center space-x-3 mb-1">
+                              <div className="flex items-center space-x-1">
+                                <Users className="w-3 h-3" />
+                                <span>{room.capacity}</span>
+                              </div>
+                              <span>•</span>
+                              <span>{room.description || 'Meeting Room'}</span>
                             </div>
-                            <span>•</span>
-                            <span>{room.description || 'Meeting Room'}</span>
+                            {room.equipment && room.equipment.length > 0 && (
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className="text-xs">Facilities:</span>
+                                <div className="flex items-center space-x-1">
+                                  {room.equipment.slice(0, 4).map((eq, index) => (
+                                    <div key={index} className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
+                                      {getEquipmentIcon(eq)}
+                                      <span className="text-xs">{eq}</span>
+                                    </div>
+                                  ))}
+                                  {room.equipment.length > 4 && (
+                                    <span className="text-xs text-gray-400">+{room.equipment.length - 4} more</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center space-x-1 text-green-600">
@@ -199,13 +241,31 @@ export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selecte
                           <div className={`font-medium ${room.available ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
                             {room.name}
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-3">
-                            <div className="flex items-center space-x-1">
-                              <Users className="w-3 h-3" />
-                              <span>{room.capacity}</span>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center space-x-3 mb-1">
+                              <div className="flex items-center space-x-1">
+                                <Users className="w-3 h-3" />
+                                <span>{room.capacity}</span>
+                              </div>
+                              <span>•</span>
+                              <span>{room.description || 'Meeting Room'}</span>
                             </div>
-                            <span>•</span>
-                            <span>{room.description || 'Meeting Room'}</span>
+                            {room.equipment && room.equipment.length > 0 && (
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className="text-xs">Facilities:</span>
+                                <div className="flex items-center space-x-1">
+                                  {room.equipment.slice(0, 4).map((eq, index) => (
+                                    <div key={index} className="flex items-center space-x-1 text-blue-600 dark:text-blue-400">
+                                      {getEquipmentIcon(eq)}
+                                      <span className="text-xs">{eq}</span>
+                                    </div>
+                                  ))}
+                                  {room.equipment.length > 4 && (
+                                    <span className="text-xs text-gray-400">+{room.equipment.length - 4} more</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className={`flex items-center space-x-1 ${room.available ? 'text-green-600' : 'text-red-600'}`}>

@@ -45,6 +45,7 @@ export default function BookingForm() {
     name: string;
     capacity: number;
     description: string;
+    equipment: string[];
     available: boolean;
     conflictReason: string | null;
   }>>([]);
@@ -56,6 +57,7 @@ export default function BookingForm() {
     name: string;
     capacity: number;
     description: string;
+    equipment: string[];
   }>>({
     queryKey: ['/api/rooms'],
   });
@@ -484,6 +486,7 @@ export default function BookingForm() {
         rooms={(() => {
           const roomsToPass = Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room) => ({
             ...room,
+            equipment: room.equipment || [],
             available: true,
             conflictReason: null
           }));

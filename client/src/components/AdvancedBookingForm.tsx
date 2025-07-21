@@ -44,6 +44,7 @@ export default function AdvancedBookingForm() {
     name: string;
     capacity: number;
     description: string;
+    equipment: string[];
     available: boolean;
     conflictReason: string | null;
   }>>([]);
@@ -55,6 +56,7 @@ export default function AdvancedBookingForm() {
     name: string;
     capacity: number;
     description: string;
+    equipment: string[];
   }>>({
     queryKey: ['/api/rooms'],
   });
@@ -541,6 +543,7 @@ export default function AdvancedBookingForm() {
         onClose={() => setIsRoomSelectorOpen(false)}
         rooms={Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room) => ({
           ...room,
+          equipment: room.equipment || [],
           available: true,
           conflictReason: null
         }))}
