@@ -51,7 +51,12 @@ export default function BookingForm() {
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [isRoomSelectorOpen, setIsRoomSelectorOpen] = useState(false);
 
-  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery<Array<{
+    id: number;
+    name: string;
+    capacity: number;
+    description: string;
+  }>>({
     queryKey: ['/api/rooms'],
   });
 
@@ -317,7 +322,7 @@ export default function BookingForm() {
                       <span>
                         {form.watch('roomId') ? 
                           (Array.isArray(roomAvailability) ? roomAvailability.find(r => r.id.toString() === form.watch('roomId'))?.name : null) || 
-                          rooms.find((r: any) => r.id.toString() === form.watch('roomId'))?.name ||
+                          rooms.find((r) => r.id.toString() === form.watch('roomId'))?.name ||
                           'Selected Room'
                           : 'Choose a room...'
                         }
@@ -477,7 +482,7 @@ export default function BookingForm() {
         isOpen={isRoomSelectorOpen}
         onClose={() => setIsRoomSelectorOpen(false)}
         rooms={(() => {
-          const roomsToPass = Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room: any) => ({
+          const roomsToPass = Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room) => ({
             ...room,
             available: true,
             conflictReason: null
