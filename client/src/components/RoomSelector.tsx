@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Users, MapPin, Filter, X, Check } from 'lucide-react';
+import { Search, Users, MapPin, Filter, Check } from 'lucide-react';
 
 interface Room {
   id: number;
@@ -63,12 +63,7 @@ export default function RoomSelector({ isOpen, onClose, rooms, onSelect, selecte
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold">Add rooms</DialogTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-lg font-semibold">Add rooms</DialogTitle>
           <DialogDescription className="text-sm text-gray-500">
             Select a room for your booking. Available rooms are shown with green indicators.
           </DialogDescription>
