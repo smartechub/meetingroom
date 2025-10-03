@@ -308,7 +308,7 @@ export default function CalendarView() {
                               <div className="flex items-center space-x-1">
                                 {getEquipmentIcon(room.equipment[0])}
                                 <span className="truncate">
-                                  {room.equipment.length > 1 ? `${room.equipment.length} facilities` : room.equipment[0]}
+                                  {room.equipment.join(', ')}
                                 </span>
                               </div>
                             </>
