@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,9 @@ import {
   Phone,
   Coffee,
   Projector,
-  Filter
+  Filter,
+  ArrowLeft,
+  ArrowRight
 } from "lucide-react";
 import { format, addDays, subDays, isToday, startOfDay, endOfDay } from "date-fns";
 
@@ -52,6 +54,8 @@ export default function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [capacityFilter, setCapacityFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const currentTimeRef = useRef<HTMLDivElement>(null);
 
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ['/api/rooms'],
@@ -72,6 +76,30 @@ export default function CalendarView() {
       setCurrentDate(prev => addDays(prev, 1));
     }
   };
+
+  const scrollToCurrentTime = () => {
+    if (currentTimeRef.current && timelineRef.current) {
+      const scrollLeft = currentTimeRef.current.offsetLeft - timelineRef.current.offsetWidth / 2 + 40;
+      timelineRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+  };
+
+  const scrollTimeline = (direction: 'left' | 'right') => {
+    if (timelineRef.current) {
+      const scrollAmount = 300;
+      const scrollLeft = timelineRef.current.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount);
+      timelineRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    if (isToday(currentDate) && !roomsLoading && currentTimeRef.current) {
+      const timer = setTimeout(() => {
+        scrollToCurrentTime();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [currentDate, roomsLoading]);
 
   const filteredRooms = useMemo(() => {
     return rooms.filter(room => {
@@ -205,8 +233,30 @@ export default function CalendarView() {
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="text-lg font-semibold">
-                {format(currentDate, 'EEEE, MMMM d, yyyy')}
+              <div className="flex items-center space-x-4">
+                <div className="text-lg font-semibold">
+                  {format(currentDate, 'EEEE, MMMM d, yyyy')}
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => scrollTimeline('left')}
+                    title="Scroll left"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => scrollTimeline('right')}
+                    title="Scroll right"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <Filter className="w-4 h-4 text-gray-500" />
@@ -279,20 +329,25 @@ export default function CalendarView() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-x-auto">
+                <div className="flex-1 overflow-x-auto" ref={timelineRef}>
                   <div className="grid grid-cols-24" style={{ gridTemplateColumns: 'repeat(24, minmax(80px, 1fr))' }}>
-                    {timeSlots.map((hour) => (
-                      <div
-                        key={hour}
-                        className="border-r border-gray-200 dark:border-slate-700 last:border-r-0"
-                      >
-                        <div className="h-12 border-b border-gray-200 dark:border-slate-700 flex items-center justify-center bg-gray-50 dark:bg-slate-800 px-2">
-                          <span className="text-xs font-medium text-gray-600 dark:text-slate-400">
-                            {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
-                          </span>
+                    {timeSlots.map((hour) => {
+                      const currentHour = new Date().getHours();
+                      const isCurrentHour = isToday(currentDate) && hour === currentHour;
+                      return (
+                        <div
+                          key={hour}
+                          ref={isCurrentHour ? currentTimeRef : null}
+                          className={`border-r border-gray-200 dark:border-slate-700 last:border-r-0 ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                        >
+                          <div className="h-12 border-b border-gray-200 dark:border-slate-700 flex items-center justify-center bg-gray-50 dark:bg-slate-800 px-2">
+                            <span className={`text-xs font-medium ${isCurrentHour ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-slate-400'}`}>
+                              {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div>
@@ -301,10 +356,12 @@ export default function CalendarView() {
                         <div className="grid grid-cols-24" style={{ gridTemplateColumns: 'repeat(24, minmax(80px, 1fr))' }}>
                           {timeSlots.map((hour) => {
                             const roomBookings = getBookingsForRoomAndTime(room.id, hour);
+                            const currentHour = new Date().getHours();
+                            const isCurrentHour = isToday(currentDate) && hour === currentHour;
                             return (
                               <div
                                 key={`${room.id}-${hour}`}
-                                className="h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                                className={`h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
                               >
                                 {roomBookings.map((booking) => {
                                   const { width, left } = calculateBookingWidth(booking, hour);
