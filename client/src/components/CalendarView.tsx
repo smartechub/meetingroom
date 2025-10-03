@@ -305,13 +305,12 @@ export default function CalendarView() {
                           {room.equipment && room.equipment.length > 0 && (
                             <>
                               <span className="flex-shrink-0">•</span>
-                              <div className="flex items-start space-x-1 flex-1 min-w-0">
-                                <div className="flex-shrink-0 mt-0.5">
-                                  {getEquipmentIcon(room.equipment[0])}
-                                </div>
-                                <span className="whitespace-normal break-words leading-tight">
-                                  {room.equipment.join(', ')}
-                                </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {room.equipment.map((eq, idx) => (
+                                  <div key={idx} title={eq}>
+                                    {getEquipmentIcon(eq)}
+                                  </div>
+                                ))}
                               </div>
                             </>
                           )}
