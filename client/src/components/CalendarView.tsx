@@ -92,15 +92,6 @@ export default function CalendarView() {
     }
   };
 
-  useEffect(() => {
-    if (isToday(currentDate) && !roomsLoading && currentTimeRef.current) {
-      const timer = setTimeout(() => {
-        scrollToCurrentTime();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [currentDate, roomsLoading]);
-
   const filteredRooms = useMemo(() => {
     return rooms.filter(room => {
       const matchesCapacity = capacityFilter === "all" || 
@@ -115,6 +106,15 @@ export default function CalendarView() {
       return matchesCapacity && matchesSearch;
     });
   }, [rooms, capacityFilter, searchTerm]);
+
+  useEffect(() => {
+    if (isToday(currentDate) && !roomsLoading && !bookingsLoading && currentTimeRef.current && timelineRef.current) {
+      const timer = setTimeout(() => {
+        scrollToCurrentTime();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [currentDate, roomsLoading, bookingsLoading, filteredRooms.length]);
 
   const getBookingsForRoomAndTime = (roomId: number, hour: number) => {
     const dayStart = startOfDay(currentDate);
