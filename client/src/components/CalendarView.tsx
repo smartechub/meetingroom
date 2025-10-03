@@ -294,20 +294,22 @@ export default function CalendarView() {
                     {filteredRooms.map((room) => (
                       <div 
                         key={room.id} 
-                        className="h-20 border-b border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
+                        className="min-h-20 border-b border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
                       >
                         <div className="font-medium text-sm truncate">{room.name}</div>
                         <div className="flex items-center space-x-2 mt-1 text-xs text-gray-600 dark:text-slate-400">
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center space-x-1 flex-shrink-0">
                             <Users className="w-3 h-3" />
                             <span>{room.capacity}</span>
                           </div>
                           {room.equipment && room.equipment.length > 0 && (
                             <>
-                              <span>•</span>
-                              <div className="flex items-center space-x-1">
-                                {getEquipmentIcon(room.equipment[0])}
-                                <span className="truncate">
+                              <span className="flex-shrink-0">•</span>
+                              <div className="flex items-start space-x-1 flex-1 min-w-0">
+                                <div className="flex-shrink-0 mt-0.5">
+                                  {getEquipmentIcon(room.equipment[0])}
+                                </div>
+                                <span className="whitespace-normal break-words leading-tight">
                                   {room.equipment.join(', ')}
                                 </span>
                               </div>
@@ -361,7 +363,7 @@ export default function CalendarView() {
                             return (
                               <div
                                 key={`${room.id}-${hour}`}
-                                className={`h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
+                                className={`min-h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
                               >
                                 {roomBookings.map((booking) => {
                                   const { width, left } = calculateBookingWidth(booking, hour);
