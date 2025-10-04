@@ -133,7 +133,27 @@ Default admin credentials: admin@company.com / admin123
 
 The system follows a traditional three-tier architecture with clear separation between presentation, business logic, and data persistence layers. The choice of PostgreSQL with Drizzle provides type safety while maintaining flexibility for complex queries. The custom authentication system provides enterprise-grade security with bcrypt password hashing and session management.
 
+## Pending Items
+
+### Outlook Address Book Sync
+- User requested Outlook integration for address book sync
+- Replit Outlook connector (connector:ccfg_outlook_01K4BBCKRJKP82N3PYQPZQ6DAK) was proposed but dismissed by user
+- To implement this feature, user would need to either:
+  1. Complete the Replit Outlook integration authorization flow, OR
+  2. Provide Outlook API credentials to store as secrets for manual integration
+- This feature remains pending until integration is authorized
+
 ## Recent Changes
+
+### October 4, 2025 - UI Improvements and Responsive Design
+- **IMPORTANT**: Port must remain 5000 (Replit requirement - only non-firewalled port)
+- Removed "Book Room" tab from sidebar navigation per user request
+- Added responsive mobile menu with hamburger icon for smaller screens
+- Sidebar now slides in/out on mobile devices with overlay
+- Added responsive text sizing throughout header (text-xl sm:text-2xl, etc.)
+- Mobile menu button appears on screens smaller than lg breakpoint
+- Improved responsive spacing in header (px-4 sm:px-6, space-x-2 sm:space-x-4)
+- Application now properly auto-resizes to fit different screen sizes
 
 ### October 4, 2025 - Calendar View Quick Booking Feature
 - Implemented direct booking functionality from calendar view time slots
