@@ -39,10 +39,11 @@ export function generateICS(event: CalendarEvent): string {
   const startDate = formatDate(event.startDateTime);
   const endDate = formatDate(event.endDateTime);
 
+  // Build ICS content with proper RFC5545 format
   let icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Room Booking System//EN',
+    'PRODID:-//Room Booking System//Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:REQUEST',
     'BEGIN:VEVENT',
@@ -63,22 +64,24 @@ export function generateICS(event: CalendarEvent): string {
 
   if (event.organizerEmail) {
     const organizerName = event.organizerName || event.organizerEmail;
-    icsContent.push(`ORGANIZER;CN=${escapeText(organizerName)}:mailto:${event.organizerEmail}`);
+    icsContent.push(`ORGANIZER;CN="${escapeText(organizerName)}":mailto:${event.organizerEmail}`);
   }
 
-  // Add attendees
+  // Add attendees with proper RSVP flags
   if (event.attendees && event.attendees.length > 0) {
     event.attendees.forEach((attendee) => {
-      icsContent.push(`ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${attendee}`);
+      icsContent.push(`ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${attendee}`);
     });
   }
 
   icsContent.push(
     'STATUS:CONFIRMED',
     'SEQUENCE:0',
+    'TRANSP:OPAQUE',
     'END:VEVENT',
     'END:VCALENDAR'
   );
 
-  return icsContent.join('\r\n');
+  // Join with CRLF line endings as per RFC5545
+  return icsContent.join('\r\n') + '\r\n';
 }

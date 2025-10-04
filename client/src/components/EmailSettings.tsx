@@ -47,11 +47,23 @@ const emailSettingsSchema = z.object({
 
 type EmailSettingsForm = z.infer<typeof emailSettingsSchema>;
 
+const testEmailSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+type TestEmailForm = z.infer<typeof testEmailSchema>;
+
 export default function EmailSettings() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [showTestDialog, setShowTestDialog] = useState(false);
-  const [testEmail, setTestEmail] = useState("");
   const { toast } = useToast();
+  
+  const testEmailForm = useForm<TestEmailForm>({
+    resolver: zodResolver(testEmailSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
 
   const { data: emailSettings, isLoading } = useQuery<EmailSettings>({
     queryKey: ['/api/email-settings'],
@@ -140,7 +152,7 @@ export default function EmailSettings() {
         description: "Test email sent successfully! Check the recipient's inbox.",
       });
       setShowTestDialog(false);
-      setTestEmail("");
+      testEmailForm.reset();
     },
     onError: (error) => {
       toast({
@@ -159,17 +171,9 @@ export default function EmailSettings() {
     setShowTestDialog(true);
   };
 
-  const handleSendTestEmail = () => {
-    if (!testEmail || !testEmail.includes("@")) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSendTestEmail = (data: TestEmailForm) => {
     setIsTestingConnection(true);
-    testConnectionMutation.mutate(testEmail);
+    testConnectionMutation.mutate(data.email);
     setTimeout(() => setIsTestingConnection(false), 2000);
   };
 
@@ -505,7 +509,7 @@ export default function EmailSettings() {
               Enter an email address to send a test email and verify your SMTP settings are working correctly.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <form onSubmit={testEmailForm.handleSubmit(handleSendTestEmail)} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="test-email">Email Address</Label>
               <Input
@@ -513,33 +517,34 @@ export default function EmailSettings() {
                 data-testid="input-test-email"
                 type="email"
                 placeholder="recipient@example.com"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSendTestEmail();
-                  }
-                }}
+                {...testEmailForm.register("email")}
               />
+              {testEmailForm.formState.errors.email && (
+                <p className="text-sm text-red-600">{testEmailForm.formState.errors.email.message}</p>
+              )}
             </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowTestDialog(false)}
-              data-testid="button-cancel-test"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSendTestEmail}
-              disabled={isTestingConnection || testConnectionMutation.isPending}
-              data-testid="button-send-test"
-            >
-              <TestTube className="w-4 h-4 mr-2" />
-              {isTestingConnection ? "Sending..." : "Send Test Email"}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowTestDialog(false);
+                  testEmailForm.reset();
+                }}
+                data-testid="button-cancel-test"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isTestingConnection || testConnectionMutation.isPending}
+                data-testid="button-send-test"
+              >
+                <TestTube className="w-4 h-4 mr-2" />
+                {isTestingConnection ? "Sending..." : "Send Test Email"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

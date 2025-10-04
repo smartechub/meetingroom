@@ -290,7 +290,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await createAuditLog(req, 'create', 'booking', booking.id.toString(), booking);
       
       // Send notification emails to participants
-      if (booking.participants && booking.participants.length > 0) {
+      const participants = Array.isArray(booking.participants) ? booking.participants as string[] : [];
+      if (participants.length > 0) {
         try {
           const room = await storage.getRoom(booking.roomId);
           const startDate = new Date(booking.startDateTime);
@@ -318,11 +319,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               endDateTime: endDate,
               organizerName: `${user?.firstName} ${user?.lastName}`,
               organizerEmail: user?.email || emailSettings.fromEmail,
-              attendees: booking.participants as string[],
+              attendees: participants,
             });
 
             // Send email to each participant
-            for (const participantEmail of booking.participants) {
+            for (const participantEmail of participants) {
               const emailContent = `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                   <h2 style="color: #2563eb;">Meeting Invitation</h2>
