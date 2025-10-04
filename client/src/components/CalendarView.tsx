@@ -382,26 +382,35 @@ export default function CalendarView() {
     }
   };
 
-  const calculateBookingWidth = (booking: Booking, hour: number) => {
+  const calculateBookingPosition = (booking: Booking) => {
     const bookingStart = new Date(booking.startDateTime);
     const bookingEnd = new Date(booking.endDateTime);
     const dayStart = startOfDay(currentDate);
-    const slotStart = new Date(dayStart);
-    slotStart.setHours(hour, 0, 0, 0);
-    const slotEnd = new Date(dayStart);
-    slotEnd.setHours(hour + 1, 0, 0, 0);
+    
+    const startHour = bookingStart.getHours();
+    const endHour = bookingEnd.getHours();
+    const startMinutes = bookingStart.getMinutes();
+    const endMinutes = bookingEnd.getMinutes();
+    
+    const startOffsetInHour = (startMinutes / 60) * 100;
+    const totalDurationInMinutes = (bookingEnd.getTime() - bookingStart.getTime()) / (60 * 1000);
+    const totalWidthInHours = totalDurationInMinutes / 60;
+    const totalWidthPercentage = totalWidthInHours * 100;
+    
+    return { 
+      startHour, 
+      endHour,
+      left: startOffsetInHour,
+      width: totalWidthPercentage
+    };
+  };
 
-    const effectiveStart = bookingStart > slotStart ? bookingStart : slotStart;
-    const effectiveEnd = bookingEnd < slotEnd ? bookingEnd : slotEnd;
-
-    const durationInSlot = effectiveEnd.getTime() - effectiveStart.getTime();
-    const slotDuration = 60 * 60 * 1000;
-    const percentage = (durationInSlot / slotDuration) * 100;
-
-    const startOffset = bookingStart < slotStart ? 0 : 
-      ((bookingStart.getTime() - slotStart.getTime()) / slotDuration) * 100;
-
-    return { width: percentage, left: startOffset };
+  const shouldRenderBooking = (booking: Booking, hour: number) => {
+    const bookingStart = new Date(booking.startDateTime);
+    const bookingStartHour = bookingStart.getHours();
+    return bookingStartHour === hour || 
+      (bookingStartHour < hour && hour === 0) ||
+      (bookingStart < startOfDay(currentDate) && hour === 0);
   };
 
   if (roomsLoading || bookingsLoading) {
@@ -609,37 +618,35 @@ export default function CalendarView() {
                               onClick={() => handleSlotClick(room.id, room.name, hour)}
                               data-testid={`slot-${room.id}-${hour}`}
                             >
-                              {roomBookings.map((booking) => {
-                                const { width, left } = calculateBookingWidth(booking, hour);
-                                const bookingStart = new Date(booking.startDateTime);
-                                const bookingEnd = new Date(booking.endDateTime);
-                                const isFirstSlot = bookingStart.getHours() === hour || 
-                                  (bookingStart < new Date(startOfDay(currentDate).setHours(hour, 0, 0, 0)) && hour === 0);
-                                
-                                return (
-                                  <div
-                                    key={booking.id}
-                                    className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm overflow-hidden`}
-                                    style={{ 
-                                      left: `calc(${left}% - 1px)`, 
-                                      width: `calc(${width}% + 2px)`,
-                                      zIndex: 10
-                                    }}
-                                    title={`${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\n${booking.user.email}`}
-                                  >
-                                    {isFirstSlot && width > 15 && (
-                                      <div className="font-medium whitespace-nowrap overflow-hidden">
+                              {roomBookings
+                                .filter(booking => shouldRenderBooking(booking, hour))
+                                .map((booking) => {
+                                  const position = calculateBookingPosition(booking);
+                                  const bookingStart = new Date(booking.startDateTime);
+                                  const bookingEnd = new Date(booking.endDateTime);
+                                  
+                                  return (
+                                    <div
+                                      key={booking.id}
+                                      className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm overflow-hidden flex flex-col justify-center`}
+                                      style={{ 
+                                        left: `${position.left}%`, 
+                                        width: `${position.width}%`,
+                                        zIndex: 10
+                                      }}
+                                      title={`${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\n${booking.user.email}`}
+                                    >
+                                      <div className="font-medium truncate">
                                         {booking.title}
                                       </div>
-                                    )}
-                                    {isFirstSlot && width > 25 && (
-                                      <div className="text-[10px] opacity-90 whitespace-nowrap overflow-hidden">
-                                        {format(bookingStart, 'h:mm a')} - {format(bookingEnd, 'h:mm a')}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                      {position.width > 15 && (
+                                        <div className="text-[10px] opacity-90 truncate">
+                                          {format(bookingStart, 'h:mm a')} - {format(bookingEnd, 'h:mm a')}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                             </div>
                           );
                         })}
