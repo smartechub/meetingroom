@@ -87,6 +87,8 @@ export default function CalendarView() {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ roomId: number; roomName: string; hour: number } | null>(null);
   const [participantEmail, setParticipantEmail] = useState("");
+  const [ldapSuggestions, setLdapSuggestions] = useState<any[]>([]);
+  const [showLdapSuggestions, setShowLdapSuggestions] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const currentTimeRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -137,12 +139,46 @@ export default function CalendarView() {
     { value: 6, label: "Sat" },
   ];
 
+  const searchLdapEmails = async (query: string) => {
+    if (query.length < 2) {
+      setLdapSuggestions([]);
+      setShowLdapSuggestions(false);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/ldap/search-emails?query=${encodeURIComponent(query)}`);
+      if (response.ok) {
+        const users = await response.json();
+        setLdapSuggestions(users);
+        setShowLdapSuggestions(users.length > 0);
+      }
+    } catch (error) {
+      console.error('Error searching LDAP:', error);
+    }
+  };
+
+  const handleParticipantInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setParticipantEmail(value);
+    searchLdapEmails(value);
+  };
+
+  const selectLdapSuggestion = (email: string) => {
+    setParticipantEmail(email);
+    setShowLdapSuggestions(false);
+    setLdapSuggestions([]);
+    addParticipant();
+  };
+
   const addParticipant = () => {
     if (participantEmail && participantEmail.includes('@')) {
       const currentParticipants = form.getValues('participants') || [];
       if (!currentParticipants.includes(participantEmail)) {
         form.setValue('participants', [...currentParticipants, participantEmail]);
         setParticipantEmail("");
+        setShowLdapSuggestions(false);
+        setLdapSuggestions([]);
       }
     }
   };
@@ -680,15 +716,34 @@ export default function CalendarView() {
                   <Users className="w-4 h-4" />
                   <span>Participants</span>
                 </Label>
-                <div className="flex space-x-2">
-                  <Input
-                    type="email"
-                    placeholder="Add participant email"
-                    value={participantEmail}
-                    onChange={(e) => setParticipantEmail(e.target.value)}
-                    onKeyPress={handleParticipantKeyPress}
-                    data-testid="input-participant-email"
-                  />
+                <div className="flex space-x-2 relative">
+                  <div className="flex-1 relative">
+                    <Input
+                      type="email"
+                      placeholder="Add participant email (type to search LDAP)"
+                      value={participantEmail}
+                      onChange={handleParticipantInputChange}
+                      onKeyPress={handleParticipantKeyPress}
+                      data-testid="input-participant-email"
+                    />
+                    {showLdapSuggestions && ldapSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {ldapSuggestions.map((user, index) => (
+                          <div
+                            key={index}
+                            className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer"
+                            onClick={() => selectLdapSuggestion(user.email)}
+                            data-testid={`ldap-suggestion-${index}`}
+                          >
+                            <div className="font-medium text-sm">{user.email}</div>
+                            {user.name && (
+                              <div className="text-xs text-gray-500 dark:text-slate-400">{user.name}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
