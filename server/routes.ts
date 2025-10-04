@@ -324,6 +324,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Send email to each participant
             for (const participantEmail of participants) {
+              // Format date and time properly to avoid timezone conversion issues
+              const formatDate = (date: Date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${month}/${day}/${year}`;
+              };
+              
+              const formatTime = (date: Date) => {
+                const hours = date.getHours();
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours % 12 || 12;
+                return `${displayHours}:${minutes} ${ampm}`;
+              };
+              
               const emailContent = `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                   <h2 style="color: #2563eb;">Meeting Invitation</h2>
@@ -331,8 +347,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
                     <p style="margin: 8px 0;"><strong>Title:</strong> ${booking.title}</p>
                     <p style="margin: 8px 0;"><strong>Room:</strong> ${room?.name}</p>
-                    <p style="margin: 8px 0;"><strong>Date:</strong> ${startDate.toLocaleDateString()}</p>
-                    <p style="margin: 8px 0;"><strong>Time:</strong> ${startDate.toLocaleTimeString()} - ${endDate.toLocaleTimeString()}</p>
+                    <p style="margin: 8px 0;"><strong>Date:</strong> ${formatDate(startDate)}</p>
+                    <p style="margin: 8px 0;"><strong>Time:</strong> ${formatTime(startDate)} - ${formatTime(endDate)}</p>
                     ${booking.description ? `<p style="margin: 8px 0;"><strong>Description:</strong> ${booking.description}</p>` : ''}
                     <p style="margin: 8px 0;"><strong>Organizer:</strong> ${user?.firstName} ${user?.lastName} (${user?.email})</p>
                   </div>
