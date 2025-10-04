@@ -237,28 +237,6 @@ export default function CalendarView() {
                 <div className="text-lg font-semibold">
                   {format(currentDate, 'EEEE, MMMM d, yyyy')}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => scrollTimeline('left')}
-                    title="Scroll timeline left"
-                    data-testid="button-scroll-left"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-1" />
-                    <span>Scroll Left</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => scrollTimeline('right')}
-                    title="Scroll timeline right"
-                    data-testid="button-scroll-right"
-                  >
-                    <span>Scroll Right</span>
-                    <ArrowRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <Filter className="w-4 h-4 text-gray-500" />
