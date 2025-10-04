@@ -7,11 +7,13 @@ This is a corporate room booking system built with React, Express, and PostgreSQ
 ## Recent Setup (October 4, 2025)
 
 This project was imported from GitHub and successfully configured for the Replit environment:
-- PostgreSQL database provisioned and schema pushed successfully
-- Node.js dependencies installed
-- Development server configured on port 5000 with proper host settings
-- Default admin user and sample rooms created automatically
-- Application is fully functional and accessible
+- PostgreSQL database provisioned and schema pushed successfully using `npm run db:push`
+- Node.js 20 already installed with all dependencies
+- Development workflow configured: `npm run dev` on port 5000
+- Server properly configured with host 0.0.0.0 and Vite allowedHosts: true for Replit proxy
+- Deployment configured for autoscale: build with `npm run build`, run with `npm run start`
+- Default admin user and sample rooms created automatically on first run
+- Application is fully functional and accessible at the preview URL
 
 ## User Preferences
 
