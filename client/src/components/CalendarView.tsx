@@ -456,7 +456,7 @@ export default function CalendarView() {
                         key={room.id} 
                         className="h-20 border-b border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors flex flex-col justify-center"
                       >
-                        <div className="font-medium text-sm truncate">{room.name}</div>
+                        <div className="font-medium text-sm">{room.name}</div>
                         <div className="flex items-center space-x-2 mt-1 text-xs text-gray-600 dark:text-slate-400">
                           <div className="flex items-center space-x-1 flex-shrink-0">
                             <Users className="w-3 h-3" />
@@ -535,10 +535,10 @@ export default function CalendarView() {
                                   return (
                                     <div
                                       key={booking.id}
-                                      className={`absolute top-1 bottom-1 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm`}
+                                      className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm`}
                                       style={{ 
-                                        left: `${left}%`, 
-                                        width: `${width}%`,
+                                        left: `calc(${left}% - 1px)`, 
+                                        width: `calc(${width}% + 2px)`,
                                         zIndex: 10
                                       }}
                                       title={`${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\n${booking.user.email}`}
