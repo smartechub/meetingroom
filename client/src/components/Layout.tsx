@@ -185,11 +185,14 @@ export default function Layout({ children }: LayoutProps) {
       )}
       
       {/* Sidebar */}
-      <div className={`
-        w-64 bg-white dark:bg-slate-800 shadow-lg border-r border-gray-200 dark:border-slate-700 flex flex-col
-        fixed lg:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
+      <div 
+        id="mobile-sidebar"
+        className={`
+          w-64 bg-white dark:bg-slate-800 shadow-lg border-r border-gray-200 dark:border-slate-700 flex flex-col
+          fixed lg:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
         {/* Logo */}
         <div className="p-6 border-b border-gray-200 dark:border-slate-700">
           <div className="flex items-center justify-center">
@@ -296,6 +299,9 @@ export default function Layout({ children }: LayoutProps) {
                 size="sm"
                 className="lg:hidden"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle navigation menu"
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="mobile-sidebar"
                 data-testid="button-mobile-menu"
               >
                 {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
