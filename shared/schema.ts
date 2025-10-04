@@ -29,10 +29,13 @@ export const sessions = pgTable(
 // User storage table (updated for email/password auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
+  employeeCode: varchar("employee_code").unique(),
   email: varchar("email").unique().notNull(),
   passwordHash: varchar("password_hash").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  designation: varchar("designation"),
+  department: varchar("department"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("user"), // admin, user, viewer
   createdAt: timestamp("created_at").defaultNow(),

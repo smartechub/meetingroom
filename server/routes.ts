@@ -466,10 +466,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
       
-      const { email, firstName, lastName, role, password } = req.body;
+      const { email, firstName, lastName, employeeCode, designation, department, role, password } = req.body;
       
       if (!email || !firstName || !lastName || !role || !password) {
-        return res.status(400).json({ message: "All fields are required" });
+        return res.status(400).json({ message: "All required fields must be provided" });
       }
       
       // Check if user already exists
@@ -489,11 +489,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         firstName,
         lastName,
+        employeeCode: employeeCode || undefined,
+        designation: designation || undefined,
+        department: department || undefined,
         role,
         passwordHash,
       });
       
-      await createAuditLog(req, 'create', 'user', newUser.id, { email, firstName, lastName, role });
+      await createAuditLog(req, 'create', 'user', newUser.id, { 
+        email, 
+        firstName, 
+        lastName, 
+        employeeCode, 
+        designation, 
+        department, 
+        role 
+      });
+      
+      // Send welcome email to new user
+      try {
+        const emailSettings = await storage.getEmailSettings();
+        if (emailSettings && emailSettings.smtpHost) {
+          const transporter = nodemailer.createTransport({
+            host: emailSettings.smtpHost,
+            port: emailSettings.smtpPort || 587,
+            secure: emailSettings.smtpPort === 465,
+            auth: {
+              user: emailSettings.smtpUsername,
+              pass: emailSettings.smtpPassword,
+            },
+          });
+          
+          const loginUrl = `${req.protocol}://${req.get('host')}/`;
+          
+          const emailContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">Welcome to Room Booking System</h2>
+              <p>Hello ${firstName} ${lastName},</p>
+              <p>Your account has been created successfully. Here are your login credentials:</p>
+              <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                ${employeeCode ? `<p style="margin: 8px 0;"><strong>Employee Code:</strong> ${employeeCode}</p>` : ''}
+                <p style="margin: 8px 0;"><strong>Email:</strong> ${email}</p>
+                <p style="margin: 8px 0;"><strong>Password:</strong> ${password}</p>
+                ${designation ? `<p style="margin: 8px 0;"><strong>Designation:</strong> ${designation}</p>` : ''}
+                ${department ? `<p style="margin: 8px 0;"><strong>Department:</strong> ${department}</p>` : ''}
+                <p style="margin: 8px 0;"><strong>Role:</strong> ${role}</p>
+              </div>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${loginUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Login to Your Account</a>
+              </div>
+              <p style="color: #ef4444; font-size: 14px; margin-top: 16px;">
+                <strong>Important:</strong> Please change your password after your first login for security purposes.
+              </p>
+              <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+              <p style="color: #6b7280; font-size: 12px;">
+                If you have any questions, please contact your administrator.<br>
+                Room Booking System
+              </p>
+            </div>
+          `;
+          
+          await transporter.sendMail({
+            from: `"${emailSettings.fromName}" <${emailSettings.fromEmail}>`,
+            to: email,
+            subject: 'Welcome to Room Booking System - Your Account Details',
+            html: emailContent,
+          });
+          
+          console.log(`Welcome email sent to ${email}`);
+        }
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Don't fail user creation if email fails
+      }
       
       // Remove password hash from response
       const { passwordHash: _, ...userResponse } = newUser;
