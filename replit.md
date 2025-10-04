@@ -4,10 +4,19 @@
 
 This is a corporate room booking system built with React, Express, and PostgreSQL. It provides a comprehensive solution for managing meeting room reservations with role-based access control, calendar views, and administrative features. The project aims to offer a robust and user-friendly platform for efficient room management.
 
+## Recent Setup (October 4, 2025)
+
+This project was imported from GitHub and successfully configured for the Replit environment:
+- PostgreSQL database provisioned and schema pushed successfully
+- Node.js dependencies installed
+- Development server configured on port 5000 with proper host settings
+- Default admin user and sample rooms created automatically
+- Application is fully functional and accessible
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Authentication: Migrated from Replit Auth to custom email/password authentication with traditional login forms.
+Authentication: Custom email/password authentication with traditional login forms.
 Default admin credentials: admin@company.com / admin123
 
 ## System Architecture
