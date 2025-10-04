@@ -280,6 +280,14 @@ export default function CalendarView() {
     }
   };
 
+  const scrollToTime = (hour: number) => {
+    if (timelineRef.current) {
+      const slotWidth = 80;
+      const scrollPosition = hour * slotWidth;
+      timelineRef.current.scrollTo({ left: scrollPosition, behavior: 'smooth' });
+    }
+  };
+
   const scrollToCurrentTime = () => {
     if (currentTimeRef.current && timelineRef.current) {
       const scrollLeft = currentTimeRef.current.offsetLeft - timelineRef.current.offsetWidth / 2 + 40;
@@ -475,6 +483,55 @@ export default function CalendarView() {
                 </Select>
               </div>
             </div>
+            
+            <div className="flex items-center justify-between border-t border-gray-200 dark:border-slate-700 pt-4">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Quick Time Jump:</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => scrollToTime(6)}
+                  data-testid="button-scroll-early"
+                >
+                  Early (6 AM)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => scrollToTime(9)}
+                  data-testid="button-scroll-morning"
+                >
+                  Morning (9 AM)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => scrollToTime(12)}
+                  data-testid="button-scroll-noon"
+                >
+                  Noon (12 PM)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => scrollToTime(14)}
+                  data-testid="button-scroll-afternoon"
+                >
+                  Afternoon (2 PM)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => scrollToTime(17)}
+                  data-testid="button-scroll-evening"
+                >
+                  Evening (5 PM)
+                </Button>
+              </div>
+            </div>
           </div>
         </CardHeader>
 
@@ -571,7 +628,7 @@ export default function CalendarView() {
                                   return (
                                     <div
                                       key={booking.id}
-                                      className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm`}
+                                      className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm overflow-hidden`}
                                       style={{ 
                                         left: `calc(${left}% - 1px)`, 
                                         width: `calc(${width}% + 2px)`,
@@ -580,12 +637,12 @@ export default function CalendarView() {
                                       title={`${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\n${booking.user.email}`}
                                     >
                                       {isFirstSlot && width > 15 && (
-                                        <div className="font-medium truncate">
+                                        <div className="font-medium whitespace-nowrap overflow-hidden">
                                           {booking.title}
                                         </div>
                                       )}
                                       {isFirstSlot && width > 25 && (
-                                        <div className="text-[10px] opacity-90 truncate">
+                                        <div className="text-[10px] opacity-90 whitespace-nowrap overflow-hidden">
                                           {format(bookingStart, 'h:mm a')} - {format(bookingEnd, 'h:mm a')}
                                         </div>
                                       )}
