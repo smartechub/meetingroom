@@ -306,7 +306,7 @@ export default function CalendarView() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-x-auto" ref={timelineRef}>
+                <div className="flex-1 overflow-x-scroll scrollbar-visible" ref={timelineRef} style={{ scrollbarWidth: 'auto' }}>
                   <div className="grid grid-cols-24" style={{ gridTemplateColumns: 'repeat(24, minmax(80px, 1fr))' }}>
                     {timeSlots.map((hour) => {
                       const currentHour = new Date().getHours();

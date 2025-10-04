@@ -102,6 +102,25 @@
   background: hsl(var(--foreground));
 }
 
+/* Timeline scrollbar - more prominent */
+.scrollbar-visible::-webkit-scrollbar {
+  height: 14px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 0;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.6);
+  border-radius: 7px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
+
 /* Loading animation */
 @keyframes pulse {
   0%, 100% {
