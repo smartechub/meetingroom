@@ -251,6 +251,15 @@ export default function CalendarView() {
     }
   };
 
+  const scrollToOfficeHours = () => {
+    if (timelineRef.current) {
+      const officeStartHour = 9.5;
+      const hourWidth = 80;
+      const scrollLeft = officeStartHour * hourWidth - timelineRef.current.clientWidth / 2;
+      timelineRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+  };
+
   const scrollTimeline = (direction: 'left' | 'right') => {
     if (timelineRef.current) {
       const scrollAmount = 300;
@@ -275,9 +284,13 @@ export default function CalendarView() {
   }, [rooms, capacityFilter, searchTerm]);
 
   useEffect(() => {
-    if (isToday(currentDate) && !roomsLoading && !bookingsLoading && currentTimeRef.current && timelineRef.current) {
+    if (!roomsLoading && !bookingsLoading && timelineRef.current) {
       const timer = setTimeout(() => {
-        scrollToCurrentTime();
+        if (isToday(currentDate) && currentTimeRef.current) {
+          scrollToCurrentTime();
+        } else {
+          scrollToOfficeHours();
+        }
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -441,7 +454,7 @@ export default function CalendarView() {
                     {filteredRooms.map((room) => (
                       <div 
                         key={room.id} 
-                        className="min-h-20 border-b border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors"
+                        className="h-20 border-b border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors flex flex-col justify-center"
                       >
                         <div className="font-medium text-sm truncate">{room.name}</div>
                         <div className="flex items-center space-x-2 mt-1 text-xs text-gray-600 dark:text-slate-400">
@@ -473,7 +486,10 @@ export default function CalendarView() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-x-scroll scrollbar-visible" ref={timelineRef} style={{ scrollbarWidth: 'auto' }}>
+                <div 
+                  className="flex-1 overflow-x-auto scrollbar-visible" 
+                  ref={timelineRef}
+                >
                   <div className="grid grid-cols-24" style={{ gridTemplateColumns: 'repeat(24, minmax(80px, 1fr))' }}>
                     {timeSlots.map((hour) => {
                       const currentHour = new Date().getHours();
@@ -505,7 +521,7 @@ export default function CalendarView() {
                             return (
                               <div
                                 key={`${room.id}-${hour}`}
-                                className={`min-h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
+                                className={`h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
                                 onClick={() => handleSlotClick(room.id, room.name, hour)}
                                 data-testid={`slot-${room.id}-${hour}`}
                               >
