@@ -224,15 +224,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRoomBookings(roomId: number, startDate?: Date, endDate?: Date): Promise<BookingWithRelations[]> {
-    let whereCondition = eq(bookings.roomId, roomId);
+    const whereConditions = [eq(bookings.roomId, roomId)];
     
     if (startDate && endDate) {
-      whereCondition = and(
-        eq(bookings.roomId, roomId),
-        gte(bookings.startDateTime, startDate),
-        lte(bookings.endDateTime, endDate)
-      );
+      whereConditions.push(gte(bookings.startDateTime, startDate));
+      whereConditions.push(lte(bookings.endDateTime, endDate));
     }
+    
+    const whereCondition = and(...whereConditions);
     
     const result = await db
       .select()
@@ -481,8 +480,7 @@ export class DatabaseStorage implements IStorage {
 
   async markPasswordResetTokenUsed(id: number): Promise<boolean> {
     const result = await db
-      .update(passwordResetTokens)
-      .set({ usedAt: new Date() })
+      .delete(passwordResetTokens)
       .where(eq(passwordResetTokens.id, id));
     return (result.rowCount || 0) > 0;
   }
