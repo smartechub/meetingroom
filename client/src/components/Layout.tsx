@@ -34,7 +34,9 @@ import {
   BarChart3,
   RefreshCw,
   User,
-  Lock
+  Lock,
+  Menu,
+  X
 } from "lucide-react";
 import lightLogo from "@assets/Light_Logo_1752837156719.png";
 import NotificationDropdown from "@/components/NotificationDropdown";
@@ -62,6 +64,7 @@ export default function Layout({ children }: LayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const [location, navigate] = useLocation();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { trackNavigation, trackAction } = useAuditLog();
@@ -155,7 +158,6 @@ export default function Layout({ children }: LayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Book Room', href: '/book', icon: CalendarPlus },
     { name: 'Calendar View', href: '/calendar', icon: Calendar },
     { name: 'My Bookings', href: '/my-bookings', icon: List },
     { name: 'Calendar Sync', href: '/calendar-sync', icon: RefreshCw },
@@ -173,9 +175,21 @@ export default function Layout({ children }: LayoutProps) {
   const isCurrentPage = (href: string) => location === href;
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+      
       {/* Sidebar */}
-      <div className="w-64 bg-white dark:bg-slate-800 shadow-lg border-r border-gray-200 dark:border-slate-700 flex flex-col">
+      <div className={`
+        w-64 bg-white dark:bg-slate-800 shadow-lg border-r border-gray-200 dark:border-slate-700 flex flex-col
+        fixed lg:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
         {/* Logo */}
         <div className="p-6 border-b border-gray-200 dark:border-slate-700">
           <div className="flex items-center justify-center">
@@ -274,17 +288,28 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 px-6 py-4">
+        <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-                {getPageTitle(location)}
-              </h1>
-              <p className="text-gray-600 dark:text-slate-400">
-                {getPageSubtitle(location)}
-              </p>
-            </div>
             <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                data-testid="button-mobile-menu"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">
+                  {getPageTitle(location)}
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-slate-400">
+                  {getPageSubtitle(location)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <div className="flex items-center space-x-2">
                 <Sun className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                 <Switch
