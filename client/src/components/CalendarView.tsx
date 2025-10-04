@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,7 +29,11 @@ import {
   Projector,
   Filter,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  X,
+  Plus,
+  Bell,
+  Clock
 } from "lucide-react";
 import { format, addDays, subDays, isToday, startOfDay, endOfDay } from "date-fns";
 
@@ -61,9 +68,14 @@ interface Booking {
 const bookingFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  startDateTime: z.string(),
-  endDateTime: z.string(),
+  startDateTime: z.string().min(1, "Start date and time is required"),
+  endDateTime: z.string().min(1, "End date and time is required"),
   roomId: z.number(),
+  participants: z.array(z.string().email("Invalid email address")).default([]),
+  repeatType: z.enum(["none", "daily", "weekly", "custom"]).default("none"),
+  customDays: z.array(z.number().min(0).max(6)).default([]),
+  remindMe: z.boolean().default(false),
+  reminderTime: z.number().default(15),
 });
 
 type BookingFormData = z.infer<typeof bookingFormSchema>;
@@ -74,6 +86,7 @@ export default function CalendarView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ roomId: number; roomName: string; hour: number } | null>(null);
+  const [participantEmail, setParticipantEmail] = useState("");
   const timelineRef = useRef<HTMLDivElement>(null);
   const currentTimeRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -96,8 +109,63 @@ export default function CalendarView() {
       startDateTime: "",
       endDateTime: "",
       roomId: 0,
+      participants: [],
+      repeatType: "none",
+      customDays: [],
+      remindMe: false,
+      reminderTime: 15,
     },
   });
+
+  const reminderOptions = [
+    { value: 5, label: "5 minutes before" },
+    { value: 10, label: "10 minutes before" },
+    { value: 15, label: "15 minutes before" },
+    { value: 30, label: "30 minutes before" },
+    { value: 60, label: "1 hour before" },
+    { value: 120, label: "2 hours before" },
+    { value: 1440, label: "1 day before" },
+  ];
+
+  const weekDays = [
+    { value: 0, label: "Sun" },
+    { value: 1, label: "Mon" },
+    { value: 2, label: "Tue" },
+    { value: 3, label: "Wed" },
+    { value: 4, label: "Thu" },
+    { value: 5, label: "Fri" },
+    { value: 6, label: "Sat" },
+  ];
+
+  const addParticipant = () => {
+    if (participantEmail && participantEmail.includes('@')) {
+      const currentParticipants = form.getValues('participants') || [];
+      if (!currentParticipants.includes(participantEmail)) {
+        form.setValue('participants', [...currentParticipants, participantEmail]);
+        setParticipantEmail("");
+      }
+    }
+  };
+
+  const removeParticipant = (emailToRemove: string) => {
+    const currentParticipants = form.getValues('participants') || [];
+    form.setValue('participants', currentParticipants.filter(email => email !== emailToRemove));
+  };
+
+  const handleParticipantKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addParticipant();
+    }
+  };
+
+  const toggleCustomDay = (dayValue: number) => {
+    const currentDays = form.getValues('customDays') || [];
+    const newDays = currentDays.includes(dayValue)
+      ? currentDays.filter(day => day !== dayValue)
+      : [...currentDays, dayValue].sort();
+    form.setValue('customDays', newDays);
+  };
 
   const bookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
@@ -130,15 +198,40 @@ export default function CalendarView() {
     const endDate = new Date(currentDate);
     endDate.setHours(hour + 1, 0, 0, 0);
 
+    // Format datetime for datetime-local input (YYYY-MM-DDTHH:mm)
+    const formatDateTimeLocal = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     setSelectedSlot({ roomId, roomName, hour });
-    form.setValue('roomId', roomId);
-    form.setValue('startDateTime', startDate.toISOString());
-    form.setValue('endDateTime', endDate.toISOString());
+    form.reset({
+      title: "",
+      description: "",
+      roomId: roomId,
+      startDateTime: formatDateTimeLocal(startDate),
+      endDateTime: formatDateTimeLocal(endDate),
+      participants: [],
+      repeatType: "none",
+      customDays: [],
+      remindMe: false,
+      reminderTime: 15,
+    });
     setBookingDialogOpen(true);
   };
 
   const onSubmit = (data: BookingFormData) => {
-    bookingMutation.mutate(data);
+    // Convert datetime-local format to ISO format for API
+    const submitData = {
+      ...data,
+      startDateTime: new Date(data.startDateTime).toISOString(),
+      endDateTime: new Date(data.endDateTime).toISOString(),
+    };
+    bookingMutation.mutate(submitData);
   };
 
   const navigateDate = (direction: 'prev' | 'next' | 'today') => {
@@ -478,13 +571,13 @@ export default function CalendarView() {
       </div>
 
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Book Room</DialogTitle>
             <DialogDescription>
               {selectedSlot && (
-                <span>
-                  {selectedSlot.roomName} - {format(new Date(currentDate).setHours(selectedSlot.hour, 0, 0, 0), 'MMMM d, yyyy h:mm a')} to {format(new Date(currentDate).setHours(selectedSlot.hour + 1, 0, 0, 0), 'h:mm a')}
+                <span className="font-medium">
+                  {selectedSlot.roomName}
                 </span>
               )}
             </DialogDescription>
@@ -496,10 +589,10 @@ export default function CalendarView() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>Meeting Title *</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Meeting title" 
+                        placeholder="Enter meeting title" 
                         {...field} 
                         data-testid="input-booking-title"
                       />
@@ -508,16 +601,56 @@ export default function CalendarView() {
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDateTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date & Time *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="datetime-local" 
+                          {...field} 
+                          data-testid="input-start-datetime"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="endDateTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date & Time *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="datetime-local" 
+                          {...field} 
+                          data-testid="input-end-datetime"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Meeting description" 
+                        placeholder="Add meeting agenda or notes" 
                         {...field} 
+                        rows={3}
                         data-testid="input-booking-description"
                       />
                     </FormControl>
@@ -525,7 +658,149 @@ export default function CalendarView() {
                   </FormItem>
                 )}
               />
-              <div className="flex justify-end space-x-2">
+
+              <div className="space-y-2">
+                <Label className="flex items-center space-x-2">
+                  <Users className="w-4 h-4" />
+                  <span>Participants</span>
+                </Label>
+                <div className="flex space-x-2">
+                  <Input
+                    type="email"
+                    placeholder="Add participant email"
+                    value={participantEmail}
+                    onChange={(e) => setParticipantEmail(e.target.value)}
+                    onKeyPress={handleParticipantKeyPress}
+                    data-testid="input-participant-email"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={addParticipant}
+                    data-testid="button-add-participant"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {form.watch('participants')?.map((email, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center space-x-1">
+                      <span>{email}</span>
+                      <X
+                        className="w-3 h-3 cursor-pointer"
+                        onClick={() => removeParticipant(email)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="repeatType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Repeat</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        className="flex flex-col space-y-1"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="none" id="repeat-none" />
+                          <Label htmlFor="repeat-none" className="font-normal cursor-pointer">Does not repeat</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="daily" id="repeat-daily" />
+                          <Label htmlFor="repeat-daily" className="font-normal cursor-pointer">Daily</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="weekly" id="repeat-weekly" />
+                          <Label htmlFor="repeat-weekly" className="font-normal cursor-pointer">Weekly</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="custom" id="repeat-custom" />
+                          <Label htmlFor="repeat-custom" className="font-normal cursor-pointer">Custom</Label>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch('repeatType') === 'custom' && (
+                <div className="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-slate-700">
+                  <Label>Repeat on</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {weekDays.map((day) => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        variant={form.watch('customDays')?.includes(day.value) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleCustomDay(day.value)}
+                        className="w-14"
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <FormField
+                  control={form.control}
+                  name="remindMe"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-remind-me"
+                        />
+                      </FormControl>
+                      <FormLabel className="flex items-center space-x-2 !mt-0 cursor-pointer">
+                        <Bell className="w-4 h-4" />
+                        <span>Remind me</span>
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch('remindMe') && (
+                  <FormField
+                    control={form.control}
+                    name="reminderTime"
+                    render={({ field }) => (
+                      <FormItem className="pl-6">
+                        <FormControl>
+                          <Select
+                            value={field.value.toString()}
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                          >
+                            <SelectTrigger data-testid="select-reminder-time">
+                              <SelectValue placeholder="Select reminder time" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {reminderOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value.toString()}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
