@@ -93,6 +93,13 @@ export const emailSettings = pgTable("email_settings", {
   enableBookingNotifications: boolean("enable_booking_notifications").default(true),
   enableReminders: boolean("enable_reminders").default(true),
   enablePasswordReset: boolean("enable_password_reset").default(true),
+  enableLdap: boolean("enable_ldap").default(false),
+  ldapHost: varchar("ldap_host"),
+  ldapPort: integer("ldap_port").default(389),
+  ldapBaseDn: varchar("ldap_base_dn"),
+  ldapBindDn: varchar("ldap_bind_dn"),
+  ldapBindPassword: varchar("ldap_bind_password"),
+  ldapSearchFilter: varchar("ldap_search_filter").default("(mail=*)"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

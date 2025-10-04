@@ -34,6 +34,13 @@ const emailSettingsSchema = z.object({
   enableBookingNotifications: z.boolean(),
   enableReminders: z.boolean(),
   enablePasswordReset: z.boolean(),
+  enableLdap: z.boolean(),
+  ldapHost: z.string().optional(),
+  ldapPort: z.number().optional(),
+  ldapBaseDn: z.string().optional(),
+  ldapBindDn: z.string().optional(),
+  ldapBindPassword: z.string().optional(),
+  ldapSearchFilter: z.string().optional(),
 });
 
 type EmailSettingsForm = z.infer<typeof emailSettingsSchema>;
@@ -59,6 +66,13 @@ export default function EmailSettings() {
       enableBookingNotifications: true,
       enableReminders: true,
       enablePasswordReset: true,
+      enableLdap: false,
+      ldapHost: "",
+      ldapPort: 389,
+      ldapBaseDn: "",
+      ldapBindDn: "",
+      ldapBindPassword: "",
+      ldapSearchFilter: "(mail=*)",
     },
   });
 
@@ -75,6 +89,13 @@ export default function EmailSettings() {
         enableBookingNotifications: emailSettings.enableBookingNotifications ?? true,
         enableReminders: emailSettings.enableReminders ?? true,
         enablePasswordReset: emailSettings.enablePasswordReset ?? true,
+        enableLdap: emailSettings.enableLdap ?? false,
+        ldapHost: emailSettings.ldapHost || "",
+        ldapPort: emailSettings.ldapPort || 389,
+        ldapBaseDn: emailSettings.ldapBaseDn || "",
+        ldapBindDn: emailSettings.ldapBindDn || "",
+        ldapBindPassword: emailSettings.ldapBindPassword || "",
+        ldapSearchFilter: emailSettings.ldapSearchFilter || "(mail=*)",
       });
     }
   }, [emailSettings, form]);
@@ -325,6 +346,106 @@ export default function EmailSettings() {
                 onCheckedChange={(checked) => form.setValue("enablePasswordReset", checked)}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Key className="w-5 h-5" />
+              <span>LDAP Directory Integration</span>
+            </CardTitle>
+            <CardDescription>
+              Connect to LDAP directory to auto-fetch participant email addresses
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="enable-ldap">Enable LDAP Integration</Label>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                  Use LDAP directory to search and autocomplete participant emails
+                </p>
+              </div>
+              <Switch
+                id="enable-ldap"
+                data-testid="switch-enable-ldap"
+                checked={form.watch("enableLdap")}
+                onCheckedChange={(checked) => form.setValue("enableLdap", checked)}
+              />
+            </div>
+
+            {form.watch("enableLdap") && (
+              <>
+                <Separator />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ldapHost">LDAP Host</Label>
+                    <Input
+                      id="ldapHost"
+                      data-testid="input-ldap-host"
+                      placeholder="ldap.company.com"
+                      {...form.register("ldapHost")}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ldapPort">LDAP Port</Label>
+                    <Input
+                      id="ldapPort"
+                      data-testid="input-ldap-port"
+                      type="number"
+                      placeholder="389"
+                      {...form.register("ldapPort", { valueAsNumber: true })}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="ldapBaseDn">Base DN</Label>
+                    <Input
+                      id="ldapBaseDn"
+                      data-testid="input-ldap-base-dn"
+                      placeholder="dc=company,dc=com"
+                      {...form.register("ldapBaseDn")}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="ldapBindDn">Bind DN</Label>
+                    <Input
+                      id="ldapBindDn"
+                      data-testid="input-ldap-bind-dn"
+                      placeholder="cn=admin,dc=company,dc=com"
+                      {...form.register("ldapBindDn")}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="ldapBindPassword">Bind Password</Label>
+                    <Input
+                      id="ldapBindPassword"
+                      data-testid="input-ldap-bind-password"
+                      type="password"
+                      placeholder="••••••••"
+                      {...form.register("ldapBindPassword")}
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="ldapSearchFilter">Search Filter</Label>
+                    <Input
+                      id="ldapSearchFilter"
+                      data-testid="input-ldap-search-filter"
+                      placeholder="(mail=*)"
+                      {...form.register("ldapSearchFilter")}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-slate-500">
+                      LDAP filter to search for users (e.g., (mail=*) or (objectClass=person))
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

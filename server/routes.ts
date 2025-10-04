@@ -1081,6 +1081,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // LDAP email search route
+  app.get('/api/ldap/search-emails', isAuthenticated, async (req: any, res) => {
+    try {
+      const { query = '' } = req.query;
+      const emailSettings = await storage.getEmailSettings();
+      
+      if (!emailSettings || !emailSettings.enableLdap) {
+        return res.json([]);
+      }
+
+      const { searchLdapUsers } = await import('./ldapHelper');
+      const users = await searchLdapUsers(emailSettings, query as string);
+      
+      res.json(users);
+    } catch (error) {
+      console.error('Error searching LDAP:', error);
+      res.status(500).json({ message: 'Failed to search LDAP directory' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
