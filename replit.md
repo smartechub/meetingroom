@@ -135,6 +135,21 @@ The system follows a traditional three-tier architecture with clear separation b
 
 ## Recent Changes
 
+### October 4, 2025 - Calendar View Quick Booking Feature
+- Implemented direct booking functionality from calendar view time slots
+- Users can now click on any time slot to open a quick booking dialog
+- Room and time information automatically pre-filled in the booking form
+- Dialog displays selected room name, date, and time range for confirmation
+- Added user-friendly booking form with title and description fields
+- Integrated with existing booking API for seamless room reservations
+- Enhanced user experience with cursor pointer on clickable time slots
+- Form validation ensures required fields are completed before submission
+- Success notifications confirm when booking is created
+- Calendar automatically refreshes to show new bookings after submission
+- Prominent horizontal scrollbar added to timeline for easy left/right navigation
+- Facility names displayed as wrappable text instead of truncated text
+- Improved calendar usability for quick room reservations
+
 ### July 18, 2025 - Room Availability System Enhanced During Migration
 - Verified and enhanced the existing room availability checking system during Replit migration
 - Fixed bug in checkBookingConflict method (excludeBookingId logic corrected from eq to ne)

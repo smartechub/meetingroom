@@ -1,10 +1,18 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Calendar, 
   ChevronLeft, 
@@ -50,12 +58,25 @@ interface Booking {
   };
 }
 
+const bookingFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  startDateTime: z.string(),
+  endDateTime: z.string(),
+  roomId: z.number(),
+});
+
+type BookingFormData = z.infer<typeof bookingFormSchema>;
+
 export default function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [capacityFilter, setCapacityFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ roomId: number; roomName: string; hour: number } | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const currentTimeRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ['/api/rooms'],
@@ -66,6 +87,59 @@ export default function CalendarView() {
   });
 
   const timeSlots = Array.from({ length: 24 }, (_, i) => i);
+
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      startDateTime: "",
+      endDateTime: "",
+      roomId: 0,
+    },
+  });
+
+  const bookingMutation = useMutation({
+    mutationFn: async (data: BookingFormData) => {
+      return await apiRequest('/api/bookings', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      toast({
+        title: "Success",
+        description: "Room booked successfully!",
+      });
+      setBookingDialogOpen(false);
+      form.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to book room",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSlotClick = (roomId: number, roomName: string, hour: number) => {
+    const startDate = new Date(currentDate);
+    startDate.setHours(hour, 0, 0, 0);
+    const endDate = new Date(currentDate);
+    endDate.setHours(hour + 1, 0, 0, 0);
+
+    setSelectedSlot({ roomId, roomName, hour });
+    form.setValue('roomId', roomId);
+    form.setValue('startDateTime', startDate.toISOString());
+    form.setValue('endDateTime', endDate.toISOString());
+    setBookingDialogOpen(true);
+  };
+
+  const onSubmit = (data: BookingFormData) => {
+    bookingMutation.mutate(data);
+  };
 
   const navigateDate = (direction: 'prev' | 'next' | 'today') => {
     if (direction === 'today') {
@@ -338,7 +412,9 @@ export default function CalendarView() {
                             return (
                               <div
                                 key={`${room.id}-${hour}`}
-                                className={`min-h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
+                                className={`min-h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
+                                onClick={() => handleSlotClick(room.id, room.name, hour)}
+                                data-testid={`slot-${room.id}-${hour}`}
                               >
                                 {roomBookings.map((booking) => {
                                   const { width, left } = calculateBookingWidth(booking, hour);
@@ -400,6 +476,76 @@ export default function CalendarView() {
           Showing {filteredRooms.length} of {rooms.length} rooms
         </div>
       </div>
+
+      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Book Room</DialogTitle>
+            <DialogDescription>
+              {selectedSlot && (
+                <span>
+                  {selectedSlot.roomName} - {format(new Date(currentDate).setHours(selectedSlot.hour, 0, 0, 0), 'MMMM d, yyyy h:mm a')} to {format(new Date(currentDate).setHours(selectedSlot.hour + 1, 0, 0, 0), 'h:mm a')}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Meeting title" 
+                        {...field} 
+                        data-testid="input-booking-title"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Meeting description" 
+                        {...field} 
+                        data-testid="input-booking-description"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setBookingDialogOpen(false)}
+                  data-testid="button-cancel-booking"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={bookingMutation.isPending}
+                  data-testid="button-submit-booking"
+                >
+                  {bookingMutation.isPending ? "Booking..." : "Book Room"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
