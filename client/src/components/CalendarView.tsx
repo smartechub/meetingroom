@@ -305,7 +305,7 @@ export default function CalendarView() {
                           {room.equipment && room.equipment.length > 0 && (
                             <>
                               <span className="flex-shrink-0">•</span>
-                              <span className="truncate">
+                              <span className="whitespace-normal break-words leading-tight">
                                 {room.equipment.join(', ')}
                               </span>
                             </>
