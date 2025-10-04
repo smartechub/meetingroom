@@ -627,12 +627,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      // Test email connection (this would require nodemailer setup)
-      // For now, just return success
-      res.json({ message: "Email connection test successful" });
+      const { testEmail } = req.body;
+      
+      if (!testEmail) {
+        return res.status(400).json({ message: "Test email address is required" });
+      }
+      
+      // Get email settings
+      const emailSettings = await storage.getEmailSettings();
+      if (!emailSettings || !emailSettings.smtpHost) {
+        return res.status(400).json({ message: "Email settings not configured. Please configure SMTP settings first." });
+      }
+      
+      // Create transporter with the configured SMTP settings
+      const transporter = nodemailer.createTransport({
+        host: emailSettings.smtpHost,
+        port: emailSettings.smtpPort || 587,
+        secure: emailSettings.smtpPort === 465,
+        auth: {
+          user: emailSettings.smtpUsername,
+          pass: emailSettings.smtpPassword,
+        },
+      });
+      
+      // Send test email
+      await transporter.sendMail({
+        from: `"${emailSettings.fromName}" <${emailSettings.fromEmail}>`,
+        to: testEmail,
+        subject: 'Test Email - Room Booking System',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Email Configuration Test</h2>
+            <p>This is a test email from your Room Booking System.</p>
+            <p>If you received this email, your SMTP settings are configured correctly!</p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+            <p style="color: #6b7280; font-size: 14px;">
+              Sent from Room Booking System<br>
+              Configured by: ${user?.firstName} ${user?.lastName} (${user?.email})
+            </p>
+          </div>
+        `,
+      });
+      
+      res.json({ message: "Test email sent successfully" });
     } catch (error) {
       console.error("Error testing email connection:", error);
-      res.status(500).json({ message: "Email connection test failed" });
+      res.status(500).json({ message: error instanceof Error ? error.message : "Email connection test failed" });
     }
   });
 
