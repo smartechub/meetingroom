@@ -528,126 +528,124 @@ export default function CalendarView() {
         </CardHeader>
 
         <CardContent>
-          <div className="border border-gray-200 dark:border-slate-700 rounded-lg overflow-auto scrollbar-visible max-h-[600px]">
-            <div className="inline-block min-w-full">
-              <div className="flex">
-                <div className="w-64 flex-shrink-0 bg-gray-50 dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700">
-                  <div className="h-12 border-b border-gray-200 dark:border-slate-700 flex items-center px-4 font-semibold text-sm">
-                    Rooms
-                  </div>
-                  <div>
-                    {filteredRooms.map((room) => (
-                      <div 
-                        key={room.id} 
-                        className="h-20 border-b border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors flex flex-col justify-center"
-                      >
-                        <div className="font-medium text-sm">{room.name}</div>
-                        <div className="flex items-center space-x-2 mt-1 text-xs text-gray-600 dark:text-slate-400">
-                          <div className="flex items-center space-x-1 flex-shrink-0">
-                            <Users className="w-3 h-3" />
-                            <span>{room.capacity}</span>
-                          </div>
-                          {room.equipment && room.equipment.length > 0 && (
-                            <>
-                              <span className="flex-shrink-0">•</span>
-                              <span className="whitespace-normal break-words leading-tight">
-                                {room.equipment.join(', ')}
-                              </span>
-                            </>
-                          )}
+          <div className="border border-gray-200 dark:border-slate-700 rounded-lg overflow-y-auto scrollbar-visible max-h-[600px]">
+            <div className="flex relative">
+              <div className="w-64 flex-shrink-0 bg-gray-50 dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 sticky left-0 z-10">
+                <div className="h-12 border-b border-gray-200 dark:border-slate-700 flex items-center px-4 font-semibold text-sm">
+                  Rooms
+                </div>
+                <div>
+                  {filteredRooms.map((room) => (
+                    <div 
+                      key={room.id} 
+                      className="h-20 border-b border-gray-200 dark:border-slate-700 p-3 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors flex flex-col justify-center"
+                    >
+                      <div className="font-medium text-sm">{room.name}</div>
+                      <div className="flex items-center space-x-2 mt-1 text-xs text-gray-600 dark:text-slate-400">
+                        <div className="flex items-center space-x-1 flex-shrink-0">
+                          <Users className="w-3 h-3" />
+                          <span>{room.capacity}</span>
                         </div>
-                        {room.description && (
-                          <div className="text-xs text-gray-500 dark:text-slate-500 truncate mt-1">
-                            {room.description}
-                          </div>
+                        {room.equipment && room.equipment.length > 0 && (
+                          <>
+                            <span className="flex-shrink-0">•</span>
+                            <span className="whitespace-normal break-words leading-tight">
+                              {room.equipment.join(', ')}
+                            </span>
+                          </>
                         )}
                       </div>
-                    ))}
-                    {filteredRooms.length === 0 && (
-                      <div className="p-8 text-center text-gray-500 dark:text-slate-400 text-sm">
-                        No rooms match your filters
+                      {room.description && (
+                        <div className="text-xs text-gray-500 dark:text-slate-500 truncate mt-1">
+                          {room.description}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {filteredRooms.length === 0 && (
+                    <div className="p-8 text-center text-gray-500 dark:text-slate-400 text-sm">
+                      No rooms match your filters
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div 
+                className="flex-1 overflow-x-auto scrollbar-visible" 
+                ref={timelineRef}
+              >
+                <div className="grid grid-cols-24" style={{ gridTemplateColumns: 'repeat(24, minmax(80px, 1fr))' }}>
+                  {timeSlots.map((hour) => {
+                    const currentHour = new Date().getHours();
+                    const isCurrentHour = isToday(currentDate) && hour === currentHour;
+                    return (
+                      <div
+                        key={hour}
+                        ref={isCurrentHour ? currentTimeRef : null}
+                        className={`border-r border-gray-200 dark:border-slate-700 last:border-r-0 ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                      >
+                        <div className="h-12 border-b border-gray-200 dark:border-slate-700 flex items-center justify-center bg-gray-50 dark:bg-slate-800 px-2">
+                          <span className={`text-xs font-medium ${isCurrentHour ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-slate-400'}`}>
+                            {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    );
+                  })}
                 </div>
 
-                <div 
-                  className="flex-1 overflow-x-auto scrollbar-visible" 
-                  ref={timelineRef}
-                >
-                  <div className="grid grid-cols-24" style={{ gridTemplateColumns: 'repeat(24, minmax(80px, 1fr))' }}>
-                    {timeSlots.map((hour) => {
-                      const currentHour = new Date().getHours();
-                      const isCurrentHour = isToday(currentDate) && hour === currentHour;
-                      return (
-                        <div
-                          key={hour}
-                          ref={isCurrentHour ? currentTimeRef : null}
-                          className={`border-r border-gray-200 dark:border-slate-700 last:border-r-0 ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                        >
-                          <div className="h-12 border-b border-gray-200 dark:border-slate-700 flex items-center justify-center bg-gray-50 dark:bg-slate-800 px-2">
-                            <span className={`text-xs font-medium ${isCurrentHour ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-slate-400'}`}>
-                              {format(new Date().setHours(hour, 0, 0, 0), 'h a')}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div>
-                    {filteredRooms.map((room) => (
-                      <div key={room.id} className="flex">
-                        <div className="grid grid-cols-24" style={{ gridTemplateColumns: 'repeat(24, minmax(80px, 1fr))' }}>
-                          {timeSlots.map((hour) => {
-                            const roomBookings = getBookingsForRoomAndTime(room.id, hour);
-                            const currentHour = new Date().getHours();
-                            const isCurrentHour = isToday(currentDate) && hour === currentHour;
-                            return (
-                              <div
-                                key={`${room.id}-${hour}`}
-                                className={`h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
-                                onClick={() => handleSlotClick(room.id, room.name, hour)}
-                                data-testid={`slot-${room.id}-${hour}`}
-                              >
-                                {roomBookings.map((booking) => {
-                                  const { width, left } = calculateBookingWidth(booking, hour);
-                                  const bookingStart = new Date(booking.startDateTime);
-                                  const bookingEnd = new Date(booking.endDateTime);
-                                  const isFirstSlot = bookingStart.getHours() === hour || 
-                                    (bookingStart < new Date(startOfDay(currentDate).setHours(hour, 0, 0, 0)) && hour === 0);
-                                  
-                                  return (
-                                    <div
-                                      key={booking.id}
-                                      className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm overflow-hidden`}
-                                      style={{ 
-                                        left: `calc(${left}% - 1px)`, 
-                                        width: `calc(${width}% + 2px)`,
-                                        zIndex: 10
-                                      }}
-                                      title={`${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\n${booking.user.email}`}
-                                    >
-                                      {isFirstSlot && width > 15 && (
-                                        <div className="font-medium whitespace-nowrap overflow-hidden">
-                                          {booking.title}
-                                        </div>
-                                      )}
-                                      {isFirstSlot && width > 25 && (
-                                        <div className="text-[10px] opacity-90 whitespace-nowrap overflow-hidden">
-                                          {format(bookingStart, 'h:mm a')} - {format(bookingEnd, 'h:mm a')}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })}
-                        </div>
+                <div>
+                  {filteredRooms.map((room) => (
+                    <div key={room.id} className="flex">
+                      <div className="grid grid-cols-24" style={{ gridTemplateColumns: 'repeat(24, minmax(80px, 1fr))' }}>
+                        {timeSlots.map((hour) => {
+                          const roomBookings = getBookingsForRoomAndTime(room.id, hour);
+                          const currentHour = new Date().getHours();
+                          const isCurrentHour = isToday(currentDate) && hour === currentHour;
+                          return (
+                            <div
+                              key={`${room.id}-${hour}`}
+                              className={`h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
+                              onClick={() => handleSlotClick(room.id, room.name, hour)}
+                              data-testid={`slot-${room.id}-${hour}`}
+                            >
+                              {roomBookings.map((booking) => {
+                                const { width, left } = calculateBookingWidth(booking, hour);
+                                const bookingStart = new Date(booking.startDateTime);
+                                const bookingEnd = new Date(booking.endDateTime);
+                                const isFirstSlot = bookingStart.getHours() === hour || 
+                                  (bookingStart < new Date(startOfDay(currentDate).setHours(hour, 0, 0, 0)) && hour === 0);
+                                
+                                return (
+                                  <div
+                                    key={booking.id}
+                                    className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm overflow-hidden`}
+                                    style={{ 
+                                      left: `calc(${left}% - 1px)`, 
+                                      width: `calc(${width}% + 2px)`,
+                                      zIndex: 10
+                                    }}
+                                    title={`${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\n${booking.user.email}`}
+                                  >
+                                    {isFirstSlot && width > 15 && (
+                                      <div className="font-medium whitespace-nowrap overflow-hidden">
+                                        {booking.title}
+                                      </div>
+                                    )}
+                                    {isFirstSlot && width > 25 && (
+                                      <div className="text-[10px] opacity-90 whitespace-nowrap overflow-hidden">
+                                        {format(bookingStart, 'h:mm a')} - {format(bookingEnd, 'h:mm a')}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
