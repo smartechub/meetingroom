@@ -506,10 +506,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role 
       });
       
-      // Send welcome email to new user
+      // Send welcome email with password reset link to new user
       try {
         const emailSettings = await storage.getEmailSettings();
         if (emailSettings && emailSettings.smtpHost) {
+          // Generate password reset token for new user
+          const crypto = await import("crypto");
+          const activationToken = crypto.randomBytes(32).toString('hex');
+          const expiresAt = new Date(Date.now() + 24 * 3600000); // 24 hours
+          
+          await storage.createPasswordResetToken({
+            userId: newUser.id,
+            token: activationToken,
+            expiresAt,
+          });
+          
           const transporter = nodemailer.createTransport({
             host: emailSettings.smtpHost,
             port: emailSettings.smtpPort || 587,
@@ -520,26 +531,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             },
           });
           
-          const loginUrl = `${req.protocol}://${req.get('host')}/`;
+          const activationUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${activationToken}`;
           
           const emailContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #2563eb;">Welcome to Room Booking System</h2>
               <p>Hello ${firstName} ${lastName},</p>
-              <p>Your account has been created successfully. Here are your login credentials:</p>
+              <p>Your account has been created successfully. Here are your account details:</p>
               <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
                 ${employeeCode ? `<p style="margin: 8px 0;"><strong>Employee Code:</strong> ${employeeCode}</p>` : ''}
                 <p style="margin: 8px 0;"><strong>Email:</strong> ${email}</p>
-                <p style="margin: 8px 0;"><strong>Password:</strong> ${password}</p>
                 ${designation ? `<p style="margin: 8px 0;"><strong>Designation:</strong> ${designation}</p>` : ''}
                 ${department ? `<p style="margin: 8px 0;"><strong>Department:</strong> ${department}</p>` : ''}
                 <p style="margin: 8px 0;"><strong>Role:</strong> ${role}</p>
               </div>
+              <p>To activate your account and set your password, please click the button below:</p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${loginUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Login to Your Account</a>
+                <a href="${activationUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Set Your Password</a>
               </div>
+              <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; color: #666;">${activationUrl}</p>
               <p style="color: #ef4444; font-size: 14px; margin-top: 16px;">
-                <strong>Important:</strong> Please change your password after your first login for security purposes.
+                <strong>Important:</strong> This activation link will expire in 24 hours.
               </p>
               <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; font-size: 12px;">
@@ -552,11 +565,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await transporter.sendMail({
             from: `"${emailSettings.fromName}" <${emailSettings.fromEmail}>`,
             to: email,
-            subject: 'Welcome to Room Booking System - Your Account Details',
+            subject: 'Welcome to Room Booking System - Activate Your Account',
             html: emailContent,
           });
           
-          console.log(`Welcome email sent to ${email}`);
+          console.log(`Welcome email with activation link sent to ${email}`);
         }
       } catch (emailError) {
         console.error('Error sending welcome email:', emailError);
@@ -1005,8 +1018,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bcrypt = await import("bcrypt");
       const passwordHash = await bcrypt.hash(newPassword, 10);
       
-      // Update user password
-      await storage.updateUser(resetToken.userId, { passwordHash });
+      // Update user password and mark as activated
+      await storage.updateUser(resetToken.userId, { passwordHash, isActivated: true });
       
       // Mark token as used
       await storage.markPasswordResetTokenUsed(resetToken.id);

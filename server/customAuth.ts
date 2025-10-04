@@ -53,6 +53,13 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Check if user is activated (except for admin users created before activation system)
+      if (user.isActivated === false && user.role !== 'admin') {
+        return res.status(403).json({ 
+          message: "Please activate your account using the link sent to your email before logging in" 
+        });
+      }
+
       // Create session
       (req.session as any).user = {
         id: user.id,

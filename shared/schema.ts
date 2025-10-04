@@ -38,6 +38,7 @@ export const users = pgTable("users", {
   department: varchar("department"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").notNull().default("user"), // admin, user, viewer
+  isActivated: boolean("is_activated").default(false), // true after user sets password via activation link
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
