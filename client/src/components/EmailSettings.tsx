@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,6 +49,8 @@ type EmailSettingsForm = z.infer<typeof emailSettingsSchema>;
 
 export default function EmailSettings() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
   const { toast } = useToast();
 
   const { data: emailSettings, isLoading } = useQuery<EmailSettings>({
@@ -125,16 +128,19 @@ export default function EmailSettings() {
   });
 
   const testConnectionMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (email: string) => {
       return await apiRequest("/api/email-settings/test", {
         method: "POST",
+        body: JSON.stringify({ testEmail: email }),
       });
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Email connection test successful",
+        description: "Test email sent successfully! Check the recipient's inbox.",
       });
+      setShowTestDialog(false);
+      setTestEmail("");
     },
     onError: (error) => {
       toast({
@@ -150,8 +156,20 @@ export default function EmailSettings() {
   };
 
   const handleTestConnection = () => {
+    setShowTestDialog(true);
+  };
+
+  const handleSendTestEmail = () => {
+    if (!testEmail || !testEmail.includes("@")) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsTestingConnection(true);
-    testConnectionMutation.mutate();
+    testConnectionMutation.mutate(testEmail);
     setTimeout(() => setIsTestingConnection(false), 2000);
   };
 
@@ -478,6 +496,52 @@ export default function EmailSettings() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Test Email</DialogTitle>
+            <DialogDescription>
+              Enter an email address to send a test email and verify your SMTP settings are working correctly.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="test-email">Email Address</Label>
+              <Input
+                id="test-email"
+                data-testid="input-test-email"
+                type="email"
+                placeholder="recipient@example.com"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSendTestEmail();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowTestDialog(false)}
+              data-testid="button-cancel-test"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendTestEmail}
+              disabled={isTestingConnection || testConnectionMutation.isPending}
+              data-testid="button-send-test"
+            >
+              <TestTube className="w-4 h-4 mr-2" />
+              {isTestingConnection ? "Sending..." : "Send Test Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
