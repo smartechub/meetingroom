@@ -104,6 +104,7 @@
 
 /* Timeline scrollbar - more prominent */
 .scrollbar-visible::-webkit-scrollbar {
+  width: 14px;
   height: 14px;
 }
 

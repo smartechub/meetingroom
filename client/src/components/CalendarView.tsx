@@ -493,18 +493,10 @@ export default function CalendarView() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => scrollToTime(6)}
-                  data-testid="button-scroll-early"
-                >
-                  Early (6 AM)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
                   onClick={() => scrollToTime(9)}
                   data-testid="button-scroll-morning"
                 >
-                  Morning (9 AM)
+                  9 AM
                 </Button>
                 <Button
                   variant="outline"
@@ -512,7 +504,7 @@ export default function CalendarView() {
                   onClick={() => scrollToTime(12)}
                   data-testid="button-scroll-noon"
                 >
-                  Noon (12 PM)
+                  12 PM
                 </Button>
                 <Button
                   variant="outline"
@@ -520,7 +512,7 @@ export default function CalendarView() {
                   onClick={() => scrollToTime(14)}
                   data-testid="button-scroll-afternoon"
                 >
-                  Afternoon (2 PM)
+                  2 PM
                 </Button>
                 <Button
                   variant="outline"
@@ -528,7 +520,7 @@ export default function CalendarView() {
                   onClick={() => scrollToTime(17)}
                   data-testid="button-scroll-evening"
                 >
-                  Evening (5 PM)
+                  5 PM
                 </Button>
               </div>
             </div>
@@ -536,7 +528,7 @@ export default function CalendarView() {
         </CardHeader>
 
         <CardContent>
-          <div className="border border-gray-200 dark:border-slate-700 rounded-lg overflow-auto">
+          <div className="border border-gray-200 dark:border-slate-700 rounded-lg overflow-auto scrollbar-visible max-h-[600px]">
             <div className="inline-block min-w-full">
               <div className="flex">
                 <div className="w-64 flex-shrink-0 bg-gray-50 dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700">
