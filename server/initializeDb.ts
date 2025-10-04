@@ -24,11 +24,47 @@ export async function initializeDatabase() {
       console.log("Email: admin@company.com");
       console.log("Password: admin123");
       console.log("Please change the password after first login.");
-      
-      return adminUser;
+    } else {
+      console.log("Admin user already exists");
     }
     
-    console.log("Admin user already exists");
+    // Check and create default rooms
+    const existingRooms = await storage.getAllRooms();
+    
+    if (existingRooms.length === 0) {
+      const defaultRooms = [
+        {
+          name: "Beam",
+          capacity: 5,
+          description: "IT Side",
+          equipment: ["telephone", "whiteboard", "tv"],
+          isActive: true,
+        },
+        {
+          name: "Flush",
+          capacity: 4,
+          description: "IT Side",
+          equipment: ["telephone", "whiteboard", "mic-speaker", "camera", "tv"],
+          isActive: true,
+        },
+        {
+          name: "Sunshine",
+          capacity: 4,
+          description: "War Room Entrance",
+          equipment: ["telephone", "whiteboard", "mic-speaker", "camera", "tv"],
+          isActive: true,
+        },
+      ];
+      
+      for (const room of defaultRooms) {
+        await storage.createRoom(room);
+      }
+      
+      console.log("Default rooms created: Beam, Flush, Sunshine");
+    } else {
+      console.log(`${existingRooms.length} room(s) already exist in database`);
+    }
+    
     return existingAdmin;
   } catch (error) {
     console.error("Error initializing database:", error);
