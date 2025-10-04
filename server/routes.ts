@@ -7,6 +7,7 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import * as nodemailer from "nodemailer";
+import { generateICS } from "./icsHelper";
 
 const upload = multer({
   dest: "uploads/",
@@ -308,17 +309,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
               },
             });
 
+            // Generate ICS calendar invite
+            const icsContent = generateICS({
+              title: booking.title,
+              description: booking.description || undefined,
+              location: room?.name || 'Meeting Room',
+              startDateTime: startDate,
+              endDateTime: endDate,
+              organizerName: `${user?.firstName} ${user?.lastName}`,
+              organizerEmail: user?.email || emailSettings.fromEmail,
+              attendees: booking.participants as string[],
+            });
+
             // Send email to each participant
             for (const participantEmail of booking.participants) {
               const emailContent = `
-                <h2>Meeting Invitation</h2>
-                <p>You have been invited to a meeting:</p>
-                <p><strong>Title:</strong> ${booking.title}</p>
-                <p><strong>Room:</strong> ${room?.name}</p>
-                <p><strong>Date:</strong> ${startDate.toLocaleDateString()}</p>
-                <p><strong>Time:</strong> ${startDate.toLocaleTimeString()} - ${endDate.toLocaleTimeString()}</p>
-                ${booking.description ? `<p><strong>Description:</strong> ${booking.description}</p>` : ''}
-                <p><strong>Organizer:</strong> ${user?.firstName} ${user?.lastName} (${user?.email})</p>
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #2563eb;">Meeting Invitation</h2>
+                  <p>You have been invited to a meeting:</p>
+                  <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                    <p style="margin: 8px 0;"><strong>Title:</strong> ${booking.title}</p>
+                    <p style="margin: 8px 0;"><strong>Room:</strong> ${room?.name}</p>
+                    <p style="margin: 8px 0;"><strong>Date:</strong> ${startDate.toLocaleDateString()}</p>
+                    <p style="margin: 8px 0;"><strong>Time:</strong> ${startDate.toLocaleTimeString()} - ${endDate.toLocaleTimeString()}</p>
+                    ${booking.description ? `<p style="margin: 8px 0;"><strong>Description:</strong> ${booking.description}</p>` : ''}
+                    <p style="margin: 8px 0;"><strong>Organizer:</strong> ${user?.firstName} ${user?.lastName} (${user?.email})</p>
+                  </div>
+                  <p style="color: #6b7280; font-size: 14px; margin-top: 16px;">
+                    📅 A calendar invite is attached to this email. You can add this meeting to your calendar (Outlook, Google Calendar, etc.) by opening the attachment.
+                  </p>
+                </div>
               `;
 
               await transporter.sendMail({
@@ -326,6 +346,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 to: participantEmail,
                 subject: `Meeting Invitation: ${booking.title}`,
                 html: emailContent,
+                icalEvent: {
+                  method: 'REQUEST',
+                  content: icsContent,
+                },
+                attachments: [
+                  {
+                    filename: 'meeting-invite.ics',
+                    content: icsContent,
+                    contentType: 'text/calendar; charset=utf-8; method=REQUEST',
+                  },
+                ],
               });
             }
           }
