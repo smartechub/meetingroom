@@ -28,9 +28,12 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 const createUserSchema = z.object({
+  employeeCode: z.string().optional(),
   email: z.string().email("Please enter a valid email address"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  designation: z.string().optional(),
+  department: z.string().optional(),
   role: z.enum(["admin", "user", "viewer"], {
     required_error: "Please select a role",
   }),
@@ -47,9 +50,12 @@ export default function UserManagement() {
   const form = useForm<z.infer<typeof createUserSchema>>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
+      employeeCode: "",
       email: "",
       firstName: "",
       lastName: "",
+      designation: "",
+      department: "",
       role: "user",
       password: "",
     },
@@ -227,6 +233,19 @@ export default function UserManagement() {
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="employeeCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Employee Code (Optional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="EMP001" {...field} data-testid="input-employee-code" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -235,7 +254,7 @@ export default function UserManagement() {
                           <FormItem>
                             <FormLabel>First Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="John" {...field} />
+                              <Input placeholder="John" {...field} data-testid="input-first-name" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -248,7 +267,7 @@ export default function UserManagement() {
                           <FormItem>
                             <FormLabel>Last Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Doe" {...field} />
+                              <Input placeholder="Doe" {...field} data-testid="input-last-name" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -260,14 +279,42 @@ export default function UserManagement() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>Email ID</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="john.doe@company.com" {...field} />
+                            <Input type="email" placeholder="john.doe@company.com" {...field} data-testid="input-email" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="designation"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Designation (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Senior Developer" {...field} data-testid="input-designation" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="department"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Department (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Engineering" {...field} data-testid="input-department" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     <FormField
                       control={form.control}
                       name="role"
