@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { EmailSettings } from "@shared/schema";
 import { 
   Mail, 
   Server, 
@@ -49,7 +50,7 @@ export default function EmailSettings() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { toast } = useToast();
 
-  const { data: emailSettings, isLoading } = useQuery({
+  const { data: emailSettings, isLoading } = useQuery<EmailSettings>({
     queryKey: ['/api/email-settings'],
     retry: false,
   });
