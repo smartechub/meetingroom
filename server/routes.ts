@@ -549,6 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (autoGeneratePassword) {
             // Send OTP password email
+            const loginUrl = `${req.protocol}://${req.get('host')}/`;
             emailContent = `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #2563eb;">Welcome to Room Booking System</h2>
@@ -565,6 +566,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <p style="color: #ef4444; font-size: 14px; margin-top: 16px;">
                   <strong>Important:</strong> Please use this one-time password to log in and set your permanent password.
                 </p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${loginUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Login to Application</a>
+                </div>
+                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #2563eb;">${loginUrl}</p>
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
                 <p style="color: #6b7280; font-size: 12px;">
                   If you have any questions, please contact your administrator.<br>
@@ -725,6 +731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               },
             });
             
+            const loginUrl = `${req.protocol}://${req.get('host')}/`;
             const emailContent = `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #2563eb;">Welcome to Room Booking System</h2>
@@ -741,6 +748,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <p style="color: #ef4444; font-size: 14px; margin-top: 16px;">
                   <strong>Important:</strong> Please use this one-time password to log in and set your permanent password.
                 </p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${loginUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Login to Application</a>
+                </div>
+                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #2563eb;">${loginUrl}</p>
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
                 <p style="color: #6b7280; font-size: 12px;">
                   If you have any questions, please contact your administrator.<br>
