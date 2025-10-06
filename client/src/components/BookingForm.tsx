@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -274,12 +273,9 @@ export default function BookingForm() {
   };
 
   return (
-    <div className="p-4">
-      <div className="max-w-4xl mx-auto">
-        <Card>
-          <CardContent className="pt-4">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Meeting Title *</Label>
                   <Input
@@ -338,7 +334,7 @@ export default function BookingForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDateTime">Start Date & Time *</Label>
                   <Input
@@ -450,25 +446,24 @@ export default function BookingForm() {
                 </Select>
               </div>
 
-              <div className="flex justify-end space-x-4 pt-6">
+              <div className="flex justify-end space-x-4 pt-4">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => navigate('/dashboard')}
+                  data-testid="button-cancel"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={createBookingMutation.isPending || uploadFileMutation.isPending}
+                  data-testid="button-book-room"
                 >
                   {createBookingMutation.isPending ? 'Booking...' : 'Book Room'}
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      </div>
       
       {/* Room Selector Dialog */}
       <RoomSelector
