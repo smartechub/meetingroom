@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
@@ -54,6 +55,7 @@ export default function UserManagement() {
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [bulkUploadResults, setBulkUploadResults] = useState<any>(null);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const [autoGeneratePassword, setAutoGeneratePassword] = useState(false);
 
@@ -220,9 +222,14 @@ export default function UserManagement() {
     });
   };
 
-  const handleDeleteUser = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      deleteUserMutation.mutate(id);
+  const handleDeleteUser = (id: string, name: string) => {
+    setUserToDelete({ id, name });
+  };
+
+  const confirmDeleteUser = () => {
+    if (userToDelete) {
+      deleteUserMutation.mutate(userToDelete.id);
+      setUserToDelete(null);
     }
   };
 
@@ -748,9 +755,10 @@ export default function UserManagement() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDeleteUser(user.id)}
+                            onClick={() => handleDeleteUser(user.id, `${user.firstName} ${user.lastName}`)}
                             disabled={deleteUserMutation.isPending}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            data-testid={`button-delete-user-${user.id}`}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
@@ -765,6 +773,39 @@ export default function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Professional Delete Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+        <AlertDialogContent className="sm:max-w-[425px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+              <Trash2 className="w-5 h-5" />
+              Delete User
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base pt-4">
+              Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-white">{userToDelete?.name}</span>?
+              <br />
+              <br />
+              This action cannot be undone. All data associated with this user will be permanently removed from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6">
+            <AlertDialogCancel 
+              className="sm:mr-3"
+              data-testid="button-cancel-delete"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-delete"
+            >
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
