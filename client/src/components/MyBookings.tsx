@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Calendar, 
   Clock, 
@@ -17,7 +18,11 @@ import {
   Edit, 
   Trash2,
   Filter,
-  Download
+  Download,
+  Users,
+  Bell,
+  Plus,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +37,11 @@ const editBookingSchema = z.object({
   startDateTime: z.string().min(1, "Start date and time are required"),
   endDateTime: z.string().min(1, "End date and time are required"),
   roomId: z.number().min(1, "Room is required"),
+  participants: z.array(z.string().email("Invalid email address")).default([]),
+  repeatType: z.enum(["none", "daily", "weekly", "custom"]).default("none"),
+  customDays: z.array(z.number().min(0).max(6)).default([]),
+  remindMe: z.boolean().default(false),
+  reminderTime: z.number().default(15),
 });
 
 type EditBookingData = z.infer<typeof editBookingSchema>;
@@ -44,6 +54,7 @@ export default function MyBookings() {
   const [roomFilter, setRoomFilter] = useState("all");
   const [editingBooking, setEditingBooking] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [participantEmail, setParticipantEmail] = useState("");
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['/api/bookings/my'],
@@ -61,6 +72,11 @@ export default function MyBookings() {
       startDateTime: "",
       endDateTime: "",
       roomId: 1,
+      participants: [],
+      repeatType: "none",
+      customDays: [],
+      remindMe: false,
+      reminderTime: 15,
     },
   });
 
@@ -134,6 +150,56 @@ export default function MyBookings() {
     }
   };
 
+  const reminderOptions = [
+    { value: 5, label: "5 minutes before" },
+    { value: 10, label: "10 minutes before" },
+    { value: 15, label: "15 minutes before" },
+    { value: 30, label: "30 minutes before" },
+    { value: 60, label: "1 hour before" },
+    { value: 120, label: "2 hours before" },
+    { value: 1440, label: "1 day before" },
+  ];
+
+  const weekDays = [
+    { value: 0, label: "Sunday" },
+    { value: 1, label: "Monday" },
+    { value: 2, label: "Tuesday" },
+    { value: 3, label: "Wednesday" },
+    { value: 4, label: "Thursday" },
+    { value: 5, label: "Friday" },
+    { value: 6, label: "Saturday" },
+  ];
+
+  const addParticipant = () => {
+    if (participantEmail && participantEmail.includes('@')) {
+      const currentParticipants = form.getValues('participants') || [];
+      if (!currentParticipants.includes(participantEmail)) {
+        form.setValue('participants', [...currentParticipants, participantEmail]);
+        setParticipantEmail("");
+      }
+    }
+  };
+
+  const removeParticipant = (emailToRemove: string) => {
+    const currentParticipants = form.getValues('participants') || [];
+    form.setValue('participants', currentParticipants.filter(email => email !== emailToRemove));
+  };
+
+  const handleParticipantKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addParticipant();
+    }
+  };
+
+  const toggleCustomDay = (dayValue: number) => {
+    const currentDays = form.getValues('customDays') || [];
+    const newDays = currentDays.includes(dayValue)
+      ? currentDays.filter(day => day !== dayValue)
+      : [...currentDays, dayValue].sort();
+    form.setValue('customDays', newDays);
+  };
+
   const handleDeleteBooking = (id: number) => {
     if (window.confirm('Are you sure you want to delete this booking?')) {
       deleteBookingMutation.mutate(id);
@@ -152,6 +218,11 @@ export default function MyBookings() {
       startDateTime: `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}T${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`,
       endDateTime: `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}T${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`,
       roomId: booking.roomId,
+      participants: booking.participants || [],
+      repeatType: booking.repeatType || "none",
+      customDays: booking.customDays || [],
+      remindMe: booking.remindMe || false,
+      reminderTime: booking.reminderTime || 15,
     });
     setIsEditModalOpen(true);
   };
@@ -414,12 +485,121 @@ export default function MyBookings() {
               />
             </div>
 
+            {/* Participants */}
+            <div className="space-y-2">
+              <Label className="flex items-center space-x-2">
+                <Users className="w-4 h-4" />
+                <span>Participants</span>
+              </Label>
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Add participant email (type to search LDAP)"
+                  value={participantEmail}
+                  onChange={(e) => setParticipantEmail(e.target.value)}
+                  onKeyPress={handleParticipantKeyPress}
+                  data-testid="input-participant-email"
+                />
+                <Button type="button" onClick={addParticipant} size="sm" data-testid="button-add-participant">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {form.watch('participants') && form.watch('participants').length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {form.watch('participants').map((email, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center space-x-1" data-testid={`badge-participant-${index}`}>
+                      <span>{email}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeParticipant(email)}
+                        className="ml-1 hover:text-red-500"
+                        data-testid={`button-remove-participant-${index}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Repeat Options */}
+            <div className="space-y-2">
+              <Label>Repeat</Label>
+              <Select 
+                value={form.watch('repeatType')} 
+                onValueChange={(value) => form.setValue('repeatType', value as any)}
+              >
+                <SelectTrigger data-testid="select-repeat-type">
+                  <SelectValue placeholder="Does not repeat" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Does not repeat</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {form.watch('repeatType') === 'custom' && (
+                <div className="mt-3">
+                  <Label>Select Days</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {weekDays.map((day) => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        variant={(form.watch('customDays') || []).includes(day.value) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleCustomDay(day.value)}
+                        data-testid={`button-day-${day.label.toLowerCase()}`}
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Remind Me */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remindMe"
+                  checked={form.watch('remindMe')}
+                  onCheckedChange={(checked) => form.setValue('remindMe', !!checked)}
+                  data-testid="checkbox-remind-me"
+                />
+                <Label htmlFor="remindMe" className="flex items-center space-x-2">
+                  <Bell className="w-4 h-4" />
+                  <span>Remind me</span>
+                </Label>
+              </div>
+              {form.watch('remindMe') && (
+                <Select 
+                  value={form.watch('reminderTime')?.toString()} 
+                  onValueChange={(value) => form.setValue('reminderTime', parseInt(value))}
+                >
+                  <SelectTrigger data-testid="select-reminder-time">
+                    <SelectValue placeholder="Select reminder time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reminderOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             <div className="flex justify-end space-x-4">
-              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)} data-testid="button-cancel">
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateBookingMutation.isPending}>
-                {updateBookingMutation.isPending ? 'Updating...' : 'Update Booking'}
+              <Button type="submit" disabled={updateBookingMutation.isPending} data-testid="button-book-room">
+                {updateBookingMutation.isPending ? 'Updating...' : 'Book Room'}
               </Button>
             </div>
           </form>
