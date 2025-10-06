@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CloudUpload, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, X, Plus, Upload, Users, Bell } from "lucide-react";
+import { MapPin, AlertCircle, X, Plus, Users, Bell } from "lucide-react";
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import RoomSelector from "./RoomSelector";
@@ -285,20 +284,8 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
   };
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5" />
-              <span>Book Room</span>
-            </CardTitle>
-            <p className="text-gray-600 dark:text-slate-400">
-              Schedule your meeting and reserve the perfect room
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">Add Title *</Label>
@@ -306,6 +293,7 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                   id="title"
                   placeholder="Enter meeting title"
                   {...form.register('title')}
+                  data-testid="input-booking-title"
                 />
                 {form.formState.errors.title && (
                   <p className="text-sm text-red-600">{form.formState.errors.title.message}</p>
@@ -324,8 +312,9 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                     value={participantEmail}
                     onChange={(e) => setParticipantEmail(e.target.value)}
                     onKeyPress={handleParticipantKeyPress}
+                    data-testid="input-participant-email"
                   />
-                  <Button type="button" onClick={addParticipant} size="sm">
+                  <Button type="button" onClick={addParticipant} size="icon" variant="outline">
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -351,13 +340,14 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
               </div>
 
               {/* Date & Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDateTime">Start Date & Time *</Label>
                   <Input
                     id="startDateTime"
                     type="datetime-local"
                     {...form.register('startDateTime')}
+                    data-testid="input-start-datetime"
                   />
                   {form.formState.errors.startDateTime && (
                     <p className="text-sm text-red-600">{form.formState.errors.startDateTime.message}</p>
@@ -370,6 +360,7 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                     id="endDateTime"
                     type="datetime-local"
                     {...form.register('endDateTime')}
+                    data-testid="input-end-datetime"
                   />
                   {form.formState.errors.endDateTime && (
                     <p className="text-sm text-red-600">{form.formState.errors.endDateTime.message}</p>
@@ -423,88 +414,83 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                 )}
               </div>
 
+              {/* Meeting Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Add meeting agenda or notes"
+                  {...form.register('description')}
+                  rows={3}
+                  data-testid="input-booking-description"
+                />
+              </div>
+
               {/* Repeat Options */}
               <div className="space-y-2">
                 <Label>Repeat</Label>
-                <Select onValueChange={(value) => form.setValue('repeatType', value as any)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select repeat option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Repeat</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="custom">Custom Days</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                {form.watch('repeatType') === 'custom' && (
-                  <div className="mt-3">
-                    <Label>Select Days</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {weekDays.map((day) => (
-                        <Button
-                          key={day.value}
-                          type="button"
-                          variant={form.watch('customDays').includes(day.value) ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => toggleCustomDay(day.value)}
-                        >
-                          {day.label}
-                        </Button>
-                      ))}
-                    </div>
+                <div className="flex flex-col space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="repeat-none"
+                      value="none"
+                      checked={form.watch('repeatType') === 'none'}
+                      onChange={() => form.setValue('repeatType', 'none')}
+                    />
+                    <Label htmlFor="repeat-none" className="font-normal cursor-pointer">Does not repeat</Label>
                   </div>
-                )}
-              </div>
-
-              {/* Add Attachment */}
-              <div className="space-y-2">
-                <Label className="flex items-center space-x-2">
-                  <Upload className="w-4 h-4" />
-                  <span>Add Attachment</span>
-                </Label>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="file"
-                    onChange={handleFileChange}
-                    accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <Label 
-                    htmlFor="file-upload" 
-                    className="flex items-center space-x-2 px-4 py-2 border rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800"
-                  >
-                    <CloudUpload className="w-4 h-4" />
-                    <span>Choose File</span>
-                  </Label>
-                  {attachmentFile && (
-                    <span className="text-sm text-gray-600">{attachmentFile.name}</span>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="repeat-daily"
+                      value="daily"
+                      checked={form.watch('repeatType') === 'daily'}
+                      onChange={() => form.setValue('repeatType', 'daily')}
+                    />
+                    <Label htmlFor="repeat-daily" className="font-normal cursor-pointer">Daily</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="repeat-weekly"
+                      value="weekly"
+                      checked={form.watch('repeatType') === 'weekly'}
+                      onChange={() => form.setValue('repeatType', 'weekly')}
+                    />
+                    <Label htmlFor="repeat-weekly" className="font-normal cursor-pointer">Weekly</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="repeat-custom"
+                      value="custom"
+                      checked={form.watch('repeatType') === 'custom'}
+                      onChange={() => form.setValue('repeatType', 'custom')}
+                    />
+                    <Label htmlFor="repeat-custom" className="font-normal cursor-pointer">Custom</Label>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500">
-                  Support for PDF, DOCX, XLSX, PNG, JPG files
-                </p>
               </div>
 
-              {/* Reminder Option */}
-              <div className="space-y-2">
+              {/* Reminder */}
+              <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="remindMe"
                     checked={form.watch('remindMe')}
                     onCheckedChange={(checked) => form.setValue('remindMe', !!checked)}
+                    data-testid="checkbox-remind-me"
                   />
-                  <Label htmlFor="remindMe" className="flex items-center space-x-2">
+                  <Label htmlFor="remindMe" className="flex items-center space-x-2 cursor-pointer">
                     <Bell className="w-4 h-4" />
-                    <span>Remind Me</span>
+                    <span>Remind me</span>
                   </Label>
                 </div>
                 {form.watch('remindMe') && (
-                  <Select onValueChange={(value) => form.setValue('reminderTime', parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select reminder time" />
+                  <Select onValueChange={(value) => form.setValue('reminderTime', parseInt(value))} defaultValue="15">
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {reminderOptions.map((option) => (
@@ -515,50 +501,33 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                     </SelectContent>
                   </Select>
                 )}
-                <p className="text-xs text-gray-500">
-                  Trigger email notification before the meeting
-                </p>
-              </div>
-
-              {/* Meeting Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Meeting Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter meeting description (optional)"
-                  {...form.register('description')}
-                  rows={3}
-                />
               </div>
 
               {/* Submit Buttons */}
               <div className="flex justify-end space-x-4">
-                <Button type="button" variant="outline" onClick={() => navigate('/dashboard')}>
+                <Button type="button" variant="outline" onClick={onSuccess}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={createBookingMutation.isPending}>
-                  {createBookingMutation.isPending ? 'Creating...' : 'Create Booking'}
+                  {createBookingMutation.isPending ? 'Booking...' : 'Book Room'}
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      </div>
       
-      {/* Room Selector Dialog */}
-      <RoomSelector
-        isOpen={isRoomSelectorOpen}
-        onClose={() => setIsRoomSelectorOpen(false)}
-        rooms={Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room) => ({
-          ...room,
-          equipment: room.equipment || [],
-          available: true,
-          conflictReason: null
-        }))}
-        onSelect={(roomId) => form.setValue('roomId', roomId)}
-        selectedRoomId={form.watch('roomId')}
-        hideUnavailable={Array.isArray(roomAvailability) && roomAvailability.length > 0}
-      />
-    </div>
+            {/* Room Selector Dialog */}
+            <RoomSelector
+              isOpen={isRoomSelectorOpen}
+              onClose={() => setIsRoomSelectorOpen(false)}
+              rooms={Array.isArray(roomAvailability) && roomAvailability.length > 0 ? roomAvailability : rooms.map((room) => ({
+                ...room,
+                equipment: room.equipment || [],
+                available: true,
+                conflictReason: null
+              }))}
+              onSelect={(roomId) => form.setValue('roomId', roomId)}
+              selectedRoomId={form.watch('roomId')}
+              hideUnavailable={Array.isArray(roomAvailability) && roomAvailability.length > 0}
+            />
+          </>
   );
 }

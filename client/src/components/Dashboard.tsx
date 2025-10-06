@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   Calendar, 
   CheckCircle, 
@@ -281,7 +281,13 @@ export default function Dashboard() {
 
       {/* Book Room Modal */}
       <Dialog open={isBookingModalOpen} onOpenChange={setIsBookingModalOpen}>
-        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Book Room</DialogTitle>
+            <DialogDescription>
+              Schedule your meeting and reserve a room
+            </DialogDescription>
+          </DialogHeader>
           <AdvancedBookingForm onSuccess={() => setIsBookingModalOpen(false)} />
         </DialogContent>
       </Dialog>
