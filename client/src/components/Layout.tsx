@@ -146,6 +146,7 @@ export default function Layout({ children }: LayoutProps) {
       });
       passwordForm.reset();
       setIsProfileOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
     },
     onError: (error: any) => {
       toast({
@@ -155,6 +156,9 @@ export default function Layout({ children }: LayoutProps) {
       });
     },
   });
+
+  // Check if user must change password (for auto-generated passwords)
+  const mustChangePassword = user?.mustChangePassword === true;
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -519,6 +523,89 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Forced Password Change Modal */}
+      <Dialog open={mustChangePassword} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-[500px]" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+              <Lock className="w-5 h-5" />
+              Password Change Required
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-slate-400">
+              You're using a temporary password. For security reasons, you must change your password before continuing.
+            </p>
+            <Form {...passwordForm}>
+              <form onSubmit={passwordForm.handleSubmit((data) => changePasswordMutation.mutate(data))} className="space-y-4">
+                <FormField
+                  control={passwordForm.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Password (Temporary)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Enter your temporary password"
+                          data-testid="input-current-password"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={passwordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Enter new password (min 6 characters)"
+                          data-testid="input-new-password"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={passwordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm New Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Confirm new password"
+                          data-testid="input-confirm-password"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={changePasswordMutation.isPending}
+                  data-testid="button-change-password"
+                >
+                  {changePasswordMutation.isPending ? "Changing Password..." : "Change Password"}
+                </Button>
+              </form>
+            </Form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

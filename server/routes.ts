@@ -517,6 +517,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         department: department || undefined,
         role,
         passwordHash,
+        isActivated: true,
+        mustChangePassword: autoGeneratePassword || false,
       });
       
       await createAuditLog(req, 'create', 'user', newUser.id, { 
@@ -696,6 +698,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             department: department || undefined,
             role: role || 'user',
             passwordHash,
+            isActivated: true,
+            mustChangePassword: true,
             generatedPassword, // Store for email
           };
         })
@@ -1054,8 +1058,11 @@ EMP003,bob.jones@company.com,Bob,Jones,Analyst,Finance,user`;
       // Hash new password
       const newPasswordHash = await bcrypt.hash(newPassword, 10);
       
-      // Update password
-      await storage.updateUser(req.user.id, { passwordHash: newPasswordHash });
+      // Update password and clear mustChangePassword flag
+      await storage.updateUser(req.user.id, { 
+        passwordHash: newPasswordHash,
+        mustChangePassword: false
+      });
       
       await createAuditLog(req, 'update', 'user', req.user.id, { action: "Changed password" });
       

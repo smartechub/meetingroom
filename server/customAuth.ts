@@ -76,7 +76,14 @@ export async function setupAuth(app: Express) {
         details: { email: user.email },
       });
 
-      res.json({ user: { id: user.id, email: user.email, role: user.role } });
+      res.json({ 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          role: user.role,
+          mustChangePassword: user.mustChangePassword || false
+        } 
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Login failed" });
