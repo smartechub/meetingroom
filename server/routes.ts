@@ -108,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check room availability for a specific time slot
   app.post('/api/rooms/availability', isAuthenticated, async (req, res) => {
     try {
-      const { startDateTime, endDateTime } = req.body;
+      const { startDateTime, endDateTime, excludeBookingId } = req.body;
       
       if (!startDateTime || !endDateTime) {
         return res.status(400).json({ message: "Start and end date times are required" });
@@ -121,7 +121,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const roomAvailability = [];
       
       for (const room of rooms) {
-        const hasConflict = await storage.checkBookingConflict(room.id, start, end);
+        const hasConflict = await storage.checkBookingConflict(
+          room.id, 
+          start, 
+          end, 
+          excludeBookingId ? parseInt(excludeBookingId) : undefined
+        );
         roomAvailability.push({
           ...room,
           available: !hasConflict,

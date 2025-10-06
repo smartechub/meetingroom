@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,16 @@ export default function MyBookings() {
   const [editingBooking, setEditingBooking] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [participantEmail, setParticipantEmail] = useState("");
+  const [roomAvailability, setRoomAvailability] = useState<Array<{
+    id: number;
+    name: string;
+    capacity: number;
+    description: string;
+    equipment: string[];
+    available: boolean;
+    conflictReason: string | null;
+  }>>([]);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['/api/bookings/my'],
@@ -200,6 +210,50 @@ export default function MyBookings() {
     form.setValue('customDays', newDays);
   };
 
+  const checkRoomAvailability = async (startDateTime: string, endDateTime: string, excludeBookingId?: number) => {
+    if (!startDateTime || !endDateTime) {
+      setRoomAvailability([]);
+      return;
+    }
+
+    setCheckingAvailability(true);
+    try {
+      const response = await apiRequest('/api/rooms/availability', {
+        method: 'POST',
+        body: JSON.stringify({
+          startDateTime,
+          endDateTime,
+          excludeBookingId: excludeBookingId?.toString(),
+        }),
+      });
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setRoomAvailability(data);
+      } else {
+        console.error('API returned non-array response:', data);
+        setRoomAvailability([]);
+      }
+    } catch (error) {
+      console.error('Error checking room availability:', error);
+      setRoomAvailability([]);
+    } finally {
+      setCheckingAvailability(false);
+    }
+  };
+
+  useEffect(() => {
+    if (editingBooking) {
+      const subscription = form.watch((value, { name }) => {
+        if (name === 'startDateTime' || name === 'endDateTime') {
+          if (value.startDateTime && value.endDateTime) {
+            checkRoomAvailability(value.startDateTime, value.endDateTime, editingBooking.id);
+          }
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [form, editingBooking]);
+
   const handleDeleteBooking = (id: number) => {
     if (window.confirm('Are you sure you want to delete this booking?')) {
       deleteBookingMutation.mutate(id);
@@ -212,11 +266,14 @@ export default function MyBookings() {
     const startDate = new Date(booking.startDateTime);
     const endDate = new Date(booking.endDateTime);
     
+    const startDateTimeStr = `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}T${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
+    const endDateTimeStr = `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}T${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+    
     form.reset({
       title: booking.title,
       description: booking.description || "",
-      startDateTime: `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}T${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`,
-      endDateTime: `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}T${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`,
+      startDateTime: startDateTimeStr,
+      endDateTime: endDateTimeStr,
       roomId: booking.roomId,
       participants: booking.participants || [],
       repeatType: booking.repeatType || "none",
@@ -224,6 +281,9 @@ export default function MyBookings() {
       remindMe: booking.remindMe || false,
       reminderTime: booking.reminderTime || 15,
     });
+    
+    // Check room availability for the current booking time
+    checkRoomAvailability(startDateTimeStr, endDateTimeStr, booking.id);
     setIsEditModalOpen(true);
   };
 
@@ -438,13 +498,21 @@ export default function MyBookings() {
                     <SelectValue placeholder="Select a room" />
                   </SelectTrigger>
                   <SelectContent>
-                    {rooms.map((room: any) => (
+                    {(roomAvailability.length > 0 ? roomAvailability.filter(room => room.available) : rooms).map((room: any) => (
                       <SelectItem key={room.id} value={room.id.toString()}>
                         {room.name} (Capacity: {room.capacity})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {checkingAvailability && (
+                  <p className="text-sm text-blue-600">Checking availability...</p>
+                )}
+                {roomAvailability.length > 0 && !checkingAvailability && (
+                  <p className="text-sm text-gray-600">
+                    Showing {roomAvailability.filter(r => r.available).length} available room(s) for selected time
+                  </p>
+                )}
                 {form.formState.errors.roomId && (
                   <p className="text-sm text-red-600">{form.formState.errors.roomId.message}</p>
                 )}
