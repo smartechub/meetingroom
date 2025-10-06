@@ -260,7 +260,7 @@ export default function MyBookings() {
     }
   };
 
-  const handleEditBooking = (booking: any) => {
+  const handleEditBooking = async (booking: any) => {
     setEditingBooking(booking);
     // Format dates for datetime-local input
     const startDate = new Date(booking.startDateTime);
@@ -282,8 +282,8 @@ export default function MyBookings() {
       reminderTime: booking.reminderTime || 15,
     });
     
-    // Check room availability for the current booking time
-    checkRoomAvailability(startDateTimeStr, endDateTimeStr, booking.id);
+    // Check room availability for the current booking time before opening modal
+    await checkRoomAvailability(startDateTimeStr, endDateTimeStr, booking.id);
     setIsEditModalOpen(true);
   };
 
@@ -498,11 +498,28 @@ export default function MyBookings() {
                     <SelectValue placeholder="Select a room" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(roomAvailability.length > 0 ? roomAvailability.filter(room => room.available) : rooms).map((room: any) => (
-                      <SelectItem key={room.id} value={room.id.toString()}>
-                        {room.name} (Capacity: {room.capacity})
-                      </SelectItem>
-                    ))}
+                    {(() => {
+                      const currentRoomId = form.watch('roomId');
+                      if (roomAvailability.length > 0) {
+                        // Get available rooms
+                        const availableRooms = roomAvailability.filter(room => room.available);
+                        // Always include the currently selected room even if not available
+                        const currentRoom = roomAvailability.find(room => room.id === currentRoomId);
+                        const roomsToShow = currentRoom && !currentRoom.available 
+                          ? [...availableRooms, currentRoom]
+                          : availableRooms;
+                        return roomsToShow.map((room: any) => (
+                          <SelectItem key={room.id} value={room.id.toString()}>
+                            {room.name} (Capacity: {room.capacity}) {!room.available ? '(Currently selected - unavailable)' : ''}
+                          </SelectItem>
+                        ));
+                      }
+                      return rooms.map((room: any) => (
+                        <SelectItem key={room.id} value={room.id.toString()}>
+                          {room.name} (Capacity: {room.capacity})
+                        </SelectItem>
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
                 {checkingAvailability && (
