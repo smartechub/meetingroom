@@ -33,6 +33,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
+  createBulkUsers(users: UpsertUser[]): Promise<{ success: User[], failed: { email: string, error: string }[] }>;
   getAllUsers(): Promise<User[]>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   updateUserPassword(id: string, passwordHash: string): Promise<boolean>;
@@ -113,6 +114,31 @@ export class DatabaseStorage implements IStorage {
       .values(userData)
       .returning();
     return user;
+  }
+
+  async createBulkUsers(usersData: UpsertUser[]): Promise<{ success: User[], failed: { email: string, error: string }[] }> {
+    const success: User[] = [];
+    const failed: { email: string, error: string }[] = [];
+
+    for (const userData of usersData) {
+      try {
+        const existingUser = await this.getUserByEmail(userData.email);
+        if (existingUser) {
+          failed.push({ email: userData.email, error: 'Email already exists' });
+          continue;
+        }
+
+        const [user] = await db
+          .insert(users)
+          .values(userData)
+          .returning();
+        success.push(user);
+      } catch (error: any) {
+        failed.push({ email: userData.email, error: error.message || 'Unknown error' });
+      }
+    }
+
+    return { success, failed };
   }
 
   async updateUserPassword(id: string, passwordHash: string): Promise<boolean> {

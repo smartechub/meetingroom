@@ -21,7 +21,10 @@ import {
   UserPlus,
   Crown,
   Eye,
-  User
+  User,
+  Upload,
+  Download,
+  FileSpreadsheet
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +49,9 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [bulkUploadResults, setBulkUploadResults] = useState<any>(null);
 
   const form = useForm<z.infer<typeof createUserSchema>>({
     resolver: zodResolver(createUserSchema),
@@ -61,7 +67,7 @@ export default function UserManagement() {
     },
   });
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/users'],
   });
 
@@ -137,6 +143,31 @@ export default function UserManagement() {
     },
   });
 
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (usersData: any[]) => {
+      const response = await apiRequest('/api/users/bulk', {
+        method: 'POST',
+        body: JSON.stringify({ users: usersData })
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setBulkUploadResults(data);
+      toast({
+        title: "Bulk Upload Completed",
+        description: `${data.success.length} users created successfully, ${data.failed.length} failed.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload users",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredUsers = users.filter((user: any) => {
     const matchesSearch = 
       user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -190,6 +221,102 @@ export default function UserManagement() {
     createUserMutation.mutate(data);
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch('/api/users/template/download', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download template');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'user_upload_template.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "Template downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadFile(file);
+      setBulkUploadResults(null);
+    }
+  };
+
+  const parseCSV = (csv: string): any[] => {
+    const lines = csv.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim());
+    const users = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const user: any = {};
+      
+      headers.forEach((header, index) => {
+        if (values[index]) {
+          user[header] = values[index];
+        }
+      });
+      
+      if (user.email) {
+        users.push(user);
+      }
+    }
+    
+    return users;
+  };
+
+  const handleBulkUpload = async () => {
+    if (!uploadFile) {
+      toast({
+        title: "Error",
+        description: "Please select a CSV file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const csv = e.target?.result as string;
+      const users = parseCSV(csv);
+      
+      if (users.length === 0) {
+        toast({
+          title: "Error",
+          description: "No valid users found in CSV file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      bulkUploadMutation.mutate(users);
+    };
+    
+    reader.readAsText(uploadFile);
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -220,13 +347,120 @@ export default function UserManagement() {
                 Manage user accounts and permissions
               </p>
             </div>
-            <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add User
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Dialog open={isBulkUploadOpen} onOpenChange={setIsBulkUploadOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" data-testid="button-bulk-upload">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Bulk Upload
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Bulk User Upload</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg space-y-2">
+                      <div className="flex items-center gap-2">
+                        <FileSpreadsheet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h3 className="font-semibold text-blue-900 dark:text-blue-100">Download Template</h3>
+                      </div>
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        Download the CSV template, fill in user details, and upload it below.
+                      </p>
+                      <Button 
+                        onClick={handleDownloadTemplate}
+                        variant="outline"
+                        className="w-full"
+                        data-testid="button-download-template"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Sample Template
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Upload CSV File</label>
+                      <Input
+                        type="file"
+                        accept=".csv"
+                        onChange={handleFileUpload}
+                        data-testid="input-csv-file"
+                      />
+                      {uploadFile && (
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          Selected: {uploadFile.name}
+                        </p>
+                      )}
+                    </div>
+
+                    {bulkUploadResults && (
+                      <div className="space-y-2 border-t pt-4">
+                        <h4 className="font-semibold">Upload Results</h4>
+                        <div className="space-y-1 text-sm">
+                          <p className="text-green-600 dark:text-green-400">
+                            ✓ {bulkUploadResults.success.length} users created successfully
+                          </p>
+                          {bulkUploadResults.failed.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-red-600 dark:text-red-400">
+                                ✗ {bulkUploadResults.failed.length} users failed:
+                              </p>
+                              <div className="max-h-32 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                                {bulkUploadResults.failed.map((fail: any, idx: number) => (
+                                  <p key={idx} className="text-xs text-red-600 dark:text-red-400">
+                                    • {fail.email}: {fail.error}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleBulkUpload}
+                        disabled={!uploadFile || bulkUploadMutation.isPending}
+                        className="flex-1"
+                        data-testid="button-upload-users"
+                      >
+                        {bulkUploadMutation.isPending ? (
+                          <>
+                            <Upload className="w-4 h-4 mr-2 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Users
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsBulkUploadOpen(false);
+                          setUploadFile(null);
+                          setBulkUploadResults(null);
+                        }}
+                        data-testid="button-close-bulk-upload"
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-add-user">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add User
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Add New User</DialogTitle>
@@ -366,6 +600,7 @@ export default function UserManagement() {
                 </Form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
