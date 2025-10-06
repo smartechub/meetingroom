@@ -33,7 +33,11 @@ const bookingSchema = z.object({
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
-export default function AdvancedBookingForm() {
+interface AdvancedBookingFormProps {
+  onSuccess?: () => void;
+}
+
+export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormProps = {}) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -187,7 +191,11 @@ export default function AdvancedBookingForm() {
         description: "Booking created successfully",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
-      navigate('/dashboard');
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/dashboard');
+      }
     },
     onError: (error: any) => {
       let errorMessage = "Failed to create booking";

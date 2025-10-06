@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Calendar, 
   CheckCircle, 
@@ -16,6 +18,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
+import AdvancedBookingForm from "@/components/AdvancedBookingForm";
 
 interface DashboardStats {
   totalRooms: number;
@@ -26,6 +29,7 @@ interface DashboardStats {
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
@@ -153,7 +157,8 @@ export default function Dashboard() {
           <CardContent className="space-y-4">
             <Button 
               className="w-full" 
-              onClick={() => navigate('/book')}
+              onClick={() => setIsBookingModalOpen(true)}
+              data-testid="button-book-room-quick"
             >
               <Plus className="w-4 h-4 mr-2" />
               Book Room
@@ -273,6 +278,16 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Book Room Modal */}
+      <Dialog open={isBookingModalOpen} onOpenChange={setIsBookingModalOpen}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Book a Meeting Room</DialogTitle>
+          </DialogHeader>
+          <AdvancedBookingForm onSuccess={() => setIsBookingModalOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
