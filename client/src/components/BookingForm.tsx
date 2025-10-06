@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CloudUpload, Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, X, Plus, Upload, Users, Bell } from "lucide-react";
+import { Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, X, Plus, Users, Bell } from "lucide-react";
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import RoomSelector from "./RoomSelector";
@@ -37,7 +37,6 @@ export default function BookingForm() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [participantEmail, setParticipantEmail] = useState("");
   const [roomAvailability, setRoomAvailability] = useState<Array<{
     id: number;
@@ -204,24 +203,7 @@ export default function BookingForm() {
     },
   });
 
-  const uploadFileMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Upload failed');
-      return response.json();
-    },
-  });
-
-
-
   const onSubmit = async (data: BookingFormData) => {
-    // Check if selected room is available
     if (roomAvailability.length > 0) {
       const selectedRoom = roomAvailability.find(room => room.id.toString() === data.roomId);
       if (selectedRoom && !selectedRoom.available) {
@@ -234,49 +216,18 @@ export default function BookingForm() {
       }
     }
 
-    let attachmentUrl;
-    if (attachmentFile) {
-      try {
-        const uploadResult = await uploadFileMutation.mutateAsync(attachmentFile);
-        attachmentUrl = uploadResult.url;
-      } catch (error) {
-        toast({
-          title: "Upload Error",
-          description: "Failed to upload attachment",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
     createBookingMutation.mutate({
       ...data,
       roomId: parseInt(data.roomId),
-      attachmentUrl,
     });
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'image/jpeg', 'image/png'];
-      if (allowedTypes.includes(file.type)) {
-        setAttachmentFile(file);
-      } else {
-        toast({
-          title: "Invalid File Type",
-          description: "Please select a PDF, DOCX, PPT, JPG, or PNG file",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
   return (
     <div>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
                   <Label htmlFor="title">Meeting Title *</Label>
                   <Input
                     id="title"
@@ -288,7 +239,7 @@ export default function BookingForm() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="roomId">Select Room *</Label>
                   {checkingAvailability && (
                     <Alert>
@@ -334,8 +285,8 @@ export default function BookingForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
                   <Label htmlFor="startDateTime">Start Date & Time *</Label>
                   <Input
                     id="startDateTime"
@@ -347,7 +298,7 @@ export default function BookingForm() {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="endDateTime">End Date & Time *</Label>
                   <Input
                     id="endDateTime"
@@ -360,7 +311,7 @@ export default function BookingForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label>Repeat Options</Label>
                 <RadioGroup
                   defaultValue="none"
@@ -385,41 +336,14 @@ export default function BookingForm() {
                 </RadioGroup>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="description">Meeting Description</Label>
                 <Textarea
                   id="description"
                   placeholder="Describe the purpose of the meeting..."
-                  rows={4}
+                  rows={2}
                   {...form.register('description')}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Attachment</Label>
-                <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-6 text-center hover:border-primary transition-colors">
-                  <input
-                    type="file"
-                    className="hidden"
-                    id="attachment"
-                    accept=".pdf,.docx,.ppt,.pptx,.jpg,.jpeg,.png"
-                    onChange={handleFileChange}
-                  />
-                  <label htmlFor="attachment" className="cursor-pointer">
-                    <CloudUpload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-sm text-gray-600 dark:text-slate-400">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
-                      PDF, DOCX, PPT, JPG, PNG (max 10MB)
-                    </p>
-                  </label>
-                  {attachmentFile && (
-                    <p className="text-sm text-green-600 mt-2">
-                      Selected: {attachmentFile.name}
-                    </p>
-                  )}
-                </div>
               </div>
 
               <div className="flex items-center space-x-4">
@@ -446,7 +370,7 @@ export default function BookingForm() {
                 </Select>
               </div>
 
-              <div className="flex justify-end space-x-4 pt-4">
+              <div className="flex justify-end space-x-3 pt-2">
                 <Button 
                   type="button" 
                   variant="outline" 
@@ -457,7 +381,7 @@ export default function BookingForm() {
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={createBookingMutation.isPending || uploadFileMutation.isPending}
+                  disabled={createBookingMutation.isPending}
                   data-testid="button-book-room"
                 >
                   {createBookingMutation.isPending ? 'Booking...' : 'Book Room'}
