@@ -274,19 +274,10 @@ export default function BookingForm() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       <div className="max-w-4xl mx-auto">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5" />
-              <span>Book a Meeting Room</span>
-            </CardTitle>
-            <p className="text-gray-600 dark:text-slate-400">
-              Schedule your meeting and reserve the perfect room for your needs.
-            </p>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">

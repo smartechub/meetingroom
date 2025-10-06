@@ -282,9 +282,6 @@ export default function Dashboard() {
       {/* Book Room Modal */}
       <Dialog open={isBookingModalOpen} onOpenChange={setIsBookingModalOpen}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Book a Meeting Room</DialogTitle>
-          </DialogHeader>
           <AdvancedBookingForm onSuccess={() => setIsBookingModalOpen(false)} />
         </DialogContent>
       </Dialog>
