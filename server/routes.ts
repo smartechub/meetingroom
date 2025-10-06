@@ -605,16 +605,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const bcrypt = await import("bcrypt");
       const { v4: uuidv4 } = await import("uuid");
+      const crypto = await import("crypto");
+      
+      // Function to generate random password
+      const generatePassword = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+        let password = '';
+        for (let i = 0; i < 10; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+      };
       
       const usersToCreate = await Promise.all(
         usersData.map(async (userData: any) => {
-          const { email, firstName, lastName, employeeCode, designation, department, role, password } = userData;
+          const { email, firstName, lastName, employeeCode, designation, department, role } = userData;
           
-          if (!email || !firstName || !lastName || !role || !password) {
+          if (!email || !firstName || !lastName || !role) {
             throw new Error(`Missing required fields for user: ${email || 'unknown'}`);
           }
           
-          const passwordHash = await bcrypt.hash(password, 10);
+          // Auto-generate password
+          const generatedPassword = generatePassword();
+          const passwordHash = await bcrypt.hash(generatedPassword, 10);
           
           return {
             id: uuidv4(),
@@ -626,6 +639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             department: department || undefined,
             role: role || 'user',
             passwordHash,
+            generatedPassword, // Store for email
           };
         })
       );
@@ -638,20 +652,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         failedCount: result.failed.length,
       });
       
-      // Send welcome emails for successfully created users
+      // Send welcome emails with OTP passwords for successfully created users
       const emailSettings = await storage.getEmailSettings();
       if (emailSettings && emailSettings.smtpHost) {
         for (const newUser of result.success) {
           try {
-            const crypto = await import("crypto");
-            const activationToken = crypto.randomBytes(32).toString('hex');
-            const expiresAt = new Date(Date.now() + 24 * 3600000);
-            
-            await storage.createPasswordResetToken({
-              userId: newUser.id,
-              token: activationToken,
-              expiresAt,
-            });
+            // Find the original user data with generated password
+            const userWithPassword = usersToCreate.find(u => u.email === newUser.email);
+            if (!userWithPassword || !userWithPassword.generatedPassword) {
+              console.error(`No generated password found for ${newUser.email}`);
+              continue;
+            }
             
             const transporter = nodemailer.createTransport({
               host: emailSettings.smtpHost,
@@ -663,13 +674,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               },
             });
             
-            const activationUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${activationToken}`;
-            
             const emailContent = `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #2563eb;">Welcome to Room Booking System</h2>
                 <p>Hello ${newUser.firstName} ${newUser.lastName},</p>
-                <p>Your account has been created successfully. Here are your account details:</p>
+                <p>User created and your one time password is <strong style="font-size: 18px; color: #dc2626;">${userWithPassword.generatedPassword}</strong></p>
+                <p>Here are your account details:</p>
                 <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
                   ${newUser.employeeCode ? `<p style="margin: 8px 0;"><strong>Employee Code:</strong> ${newUser.employeeCode}</p>` : ''}
                   <p style="margin: 8px 0;"><strong>Email:</strong> ${newUser.email}</p>
@@ -677,14 +687,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   ${newUser.department ? `<p style="margin: 8px 0;"><strong>Department:</strong> ${newUser.department}</p>` : ''}
                   <p style="margin: 8px 0;"><strong>Role:</strong> ${newUser.role}</p>
                 </div>
-                <p>To activate your account and set your password, please click the button below:</p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${activationUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Set Your Password</a>
-                </div>
-                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-                <p style="word-break: break-all; color: #666;">${activationUrl}</p>
                 <p style="color: #ef4444; font-size: 14px; margin-top: 16px;">
-                  <strong>Important:</strong> This activation link will expire in 24 hours.
+                  <strong>Important:</strong> Please use this one-time password to log in and set your permanent password.
                 </p>
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
                 <p style="color: #6b7280; font-size: 12px;">
@@ -697,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await transporter.sendMail({
               from: `"${emailSettings.fromName}" <${emailSettings.fromEmail}>`,
               to: newUser.email,
-              subject: 'Welcome to Room Booking System - Activate Your Account',
+              subject: 'Welcome to Room Booking System - Your One Time Password',
               html: emailContent,
             });
           } catch (emailError) {
@@ -724,10 +728,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const csv = `employeeCode,email,firstName,lastName,designation,department,role,password
-EMP001,john.doe@company.com,John,Doe,Senior Manager,IT,admin,SecurePass123
-EMP002,jane.smith@company.com,Jane,Smith,Developer,Engineering,user,Pass123456
-EMP003,bob.jones@company.com,Bob,Jones,Analyst,Finance,user,MyPassword1`;
+      const csv = `employeeCode,email,firstName,lastName,designation,department,role
+EMP001,john.doe@company.com,John,Doe,Senior Manager,IT,admin
+EMP002,jane.smith@company.com,Jane,Smith,Developer,Engineering,user
+EMP003,bob.jones@company.com,Bob,Jones,Analyst,Finance,user`;
 
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename=user_upload_template.csv');
