@@ -170,7 +170,7 @@ export default function BookingForm() {
   }, [form]);
 
   const createBookingMutation = useMutation({
-    mutationFn: async (data: BookingFormData & { attachmentUrl?: string }) => {
+    mutationFn: async (data: Omit<BookingFormData, 'roomId'> & { roomId: number; attachmentUrl?: string }) => {
       const response = await apiRequest('/api/bookings', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -314,27 +314,52 @@ export default function BookingForm() {
               <div className="space-y-1">
                 <Label>Repeat Options</Label>
                 <RadioGroup
-                  defaultValue="none"
+                  value={form.watch('repeatType')}
                   onValueChange={(value) => form.setValue('repeatType', value as any)}
+                  data-testid="radio-repeat-options"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="none" id="none" />
+                    <RadioGroupItem value="none" id="none" data-testid="radio-repeat-none" />
                     <Label htmlFor="none">No Repeat</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="daily" id="daily" />
+                    <RadioGroupItem value="daily" id="daily" data-testid="radio-repeat-daily" />
                     <Label htmlFor="daily">Daily</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="weekly" id="weekly" />
+                    <RadioGroupItem value="weekly" id="weekly" data-testid="radio-repeat-weekly" />
                     <Label htmlFor="weekly">Weekly</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="custom" />
+                    <RadioGroupItem value="custom" id="custom" data-testid="radio-repeat-custom" />
                     <Label htmlFor="custom">Custom Days</Label>
                   </div>
                 </RadioGroup>
               </div>
+
+              {form.watch('repeatType') === 'custom' && (
+                <div className="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-slate-700">
+                  <Label>Repeat on</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {weekDays.map((day) => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        variant={form.watch('customDays')?.includes(day.value) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleCustomDay(day.value)}
+                        className="w-20"
+                        data-testid={`button-day-${day.label.toLowerCase()}`}
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
+                  </div>
+                  {form.watch('customDays')?.length === 0 && (
+                    <p className="text-sm text-amber-600 dark:text-amber-500">Please select at least one day</p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-1">
                 <Label htmlFor="description">Meeting Description</Label>
@@ -342,6 +367,7 @@ export default function BookingForm() {
                   id="description"
                   placeholder="Describe the purpose of the meeting..."
                   rows={2}
+                  data-testid="input-description"
                   {...form.register('description')}
                 />
               </div>

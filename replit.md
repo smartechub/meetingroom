@@ -15,6 +15,24 @@ This project was imported from GitHub and successfully configured for the Replit
 - Default admin user and sample rooms created automatically on first run
 - Application is fully functional and accessible at the preview URL
 
+## Recent Changes (October 7, 2025)
+
+### Fixed: Repeat Function for Room Bookings
+- **Issue**: The repeat options (daily, weekly, custom) were not working properly in booking forms
+- **Root Cause**: 
+  1. RadioGroup in BookingForm was not controlled (missing `value` prop)
+  2. Custom days selection UI was completely missing from both BookingForm and AdvancedBookingForm
+- **Fix Applied**:
+  1. Added `value={form.watch('repeatType')}` to RadioGroup in BookingForm to make it properly controlled
+  2. Added custom days selection UI to both BookingForm and AdvancedBookingForm components
+  3. Custom days section now properly shows when "Custom Days" is selected
+  4. Users can now select specific weekdays for custom repeat patterns
+  5. Added validation warning when custom is selected but no days are chosen
+  6. Added proper test-id attributes for testing
+- **Files Modified**:
+  - `client/src/components/BookingForm.tsx`
+  - `client/src/components/AdvancedBookingForm.tsx`
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

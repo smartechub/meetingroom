@@ -437,6 +437,7 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                       value="none"
                       checked={form.watch('repeatType') === 'none'}
                       onChange={() => form.setValue('repeatType', 'none')}
+                      data-testid="radio-repeat-none"
                     />
                     <Label htmlFor="repeat-none" className="font-normal cursor-pointer">Does not repeat</Label>
                   </div>
@@ -447,6 +448,7 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                       value="daily"
                       checked={form.watch('repeatType') === 'daily'}
                       onChange={() => form.setValue('repeatType', 'daily')}
+                      data-testid="radio-repeat-daily"
                     />
                     <Label htmlFor="repeat-daily" className="font-normal cursor-pointer">Daily</Label>
                   </div>
@@ -457,6 +459,7 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                       value="weekly"
                       checked={form.watch('repeatType') === 'weekly'}
                       onChange={() => form.setValue('repeatType', 'weekly')}
+                      data-testid="radio-repeat-weekly"
                     />
                     <Label htmlFor="repeat-weekly" className="font-normal cursor-pointer">Weekly</Label>
                   </div>
@@ -467,11 +470,37 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
                       value="custom"
                       checked={form.watch('repeatType') === 'custom'}
                       onChange={() => form.setValue('repeatType', 'custom')}
+                      data-testid="radio-repeat-custom"
                     />
                     <Label htmlFor="repeat-custom" className="font-normal cursor-pointer">Custom</Label>
                   </div>
                 </div>
               </div>
+
+              {/* Custom Days Selection */}
+              {form.watch('repeatType') === 'custom' && (
+                <div className="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-slate-700">
+                  <Label>Repeat on</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {weekDays.map((day) => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        variant={form.watch('customDays')?.includes(day.value) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleCustomDay(day.value)}
+                        className="w-20"
+                        data-testid={`button-day-${day.label.toLowerCase()}`}
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
+                  </div>
+                  {form.watch('customDays')?.length === 0 && (
+                    <p className="text-sm text-amber-600 dark:text-amber-500">Please select at least one day</p>
+                  )}
+                </div>
+              )}
 
               {/* Reminder */}
               <div className="space-y-3">
