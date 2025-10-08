@@ -15,23 +15,32 @@ This project was imported from GitHub and successfully configured for the Replit
 - Default admin user and sample rooms created automatically on first run
 - Application is fully functional and accessible at the preview URL
 
-## Recent Changes (October 7, 2025)
+## Recent Changes (October 8, 2025)
 
-### Fixed: Repeat Function for Room Bookings
-- **Issue**: The repeat options (daily, weekly, custom) were not working properly in booking forms
+### Fixed: Repeat Bookings Not Showing in Calendar/Scheduler
+- **Issue**: When users selected daily, weekly, or custom repeat options and booked a room, the booking would be created but wouldn't show up in the calendar scheduler for the repeated dates
 - **Root Cause**: 
-  1. RadioGroup in BookingForm was not controlled (missing `value` prop)
-  2. Custom days selection UI was completely missing from both BookingForm and AdvancedBookingForm
+  1. The backend was only creating ONE booking record with repeat settings stored, but the calendar expected multiple booking instances for each occurrence
+  2. RadioGroup in BookingForm was not controlled (missing `value` prop)
+  3. Custom days selection UI was completely missing from both forms
 - **Fix Applied**:
-  1. Added `value={form.watch('repeatType')}` to RadioGroup in BookingForm to make it properly controlled
-  2. Added custom days selection UI to both BookingForm and AdvancedBookingForm components
-  3. Custom days section now properly shows when "Custom Days" is selected
-  4. Users can now select specific weekdays for custom repeat patterns
-  5. Added validation warning when custom is selected but no days are chosen
-  6. Added proper test-id attributes for testing
+  1. **Calendar Display Logic**: Added booking expansion logic in `CalendarView.tsx` that:
+     - Automatically expands daily bookings to show on each day for 60 days
+     - Expands weekly bookings to show on the same day of the week
+     - Expands custom bookings to show only on selected weekdays
+  2. **Form Controls**: 
+     - Fixed RadioGroup to be controlled with `value={form.watch('repeatType')}`
+     - Added custom days selection UI with clickable day buttons
+     - Added validation when custom is selected but no days are chosen
+  3. **Interface Updates**: Added `repeatType` and `customDays` to the Booking interface
 - **Files Modified**:
-  - `client/src/components/BookingForm.tsx`
-  - `client/src/components/AdvancedBookingForm.tsx`
+  - `client/src/components/CalendarView.tsx` (booking expansion logic)
+  - `client/src/components/BookingForm.tsx` (form controls)
+  - `client/src/components/AdvancedBookingForm.tsx` (form controls)
+- **How It Works Now**:
+  - Daily: Booking appears every day for 60 days from start date
+  - Weekly: Booking appears on the same weekday each week
+  - Custom: Booking appears only on the specific days you select (e.g., Mon/Wed/Fri)
 
 ## User Preferences
 

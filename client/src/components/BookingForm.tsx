@@ -204,8 +204,6 @@ export default function BookingForm() {
   });
 
   const onSubmit = async (data: BookingFormData) => {
-    console.log('Form data before submission:', data);
-    
     if (roomAvailability.length > 0) {
       const selectedRoom = roomAvailability.find(room => room.id.toString() === data.roomId);
       if (selectedRoom && !selectedRoom.available) {
@@ -218,14 +216,10 @@ export default function BookingForm() {
       }
     }
 
-    const submissionData = {
+    createBookingMutation.mutate({
       ...data,
       roomId: parseInt(data.roomId),
-    };
-    
-    console.log('Submission data to API:', submissionData);
-
-    createBookingMutation.mutate(submissionData);
+    });
   };
 
 

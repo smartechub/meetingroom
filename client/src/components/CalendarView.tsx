@@ -56,6 +56,8 @@ interface Booking {
   startDateTime: string;
   endDateTime: string;
   status: string;
+  repeatType?: string;
+  customDays?: number[];
   room: Room;
   user: {
     id: string;
@@ -97,9 +99,69 @@ export default function CalendarView() {
     queryKey: ['/api/rooms'],
   });
 
-  const { data: bookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
+  const { data: rawBookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
     queryKey: ['/api/bookings'],
   });
+
+  // Expand repeating bookings into multiple instances
+  const bookings = useMemo(() => {
+    const expanded: Booking[] = [];
+    const today = startOfDay(new Date());
+    const daysToExpand = 60; // Expand 60 days forward
+
+    rawBookings.forEach(booking => {
+      const bookingStart = new Date(booking.startDateTime);
+      const bookingEnd = new Date(booking.endDateTime);
+      const duration = bookingEnd.getTime() - bookingStart.getTime();
+
+      if (!booking.repeatType || booking.repeatType === 'none') {
+        // No repeat - add as is
+        expanded.push(booking);
+      } else if (booking.repeatType === 'daily') {
+        // Daily repeat - create instance for each day
+        for (let i = 0; i < daysToExpand; i++) {
+          const instanceStart = addDays(bookingStart, i);
+          const instanceEnd = new Date(instanceStart.getTime() + duration);
+          expanded.push({
+            ...booking,
+            id: booking.id + i * 100000, // Virtual ID to avoid conflicts
+            startDateTime: instanceStart.toISOString(),
+            endDateTime: instanceEnd.toISOString(),
+          });
+        }
+      } else if (booking.repeatType === 'weekly') {
+        // Weekly repeat - create instance for same day each week
+        for (let i = 0; i < Math.ceil(daysToExpand / 7); i++) {
+          const instanceStart = addDays(bookingStart, i * 7);
+          const instanceEnd = new Date(instanceStart.getTime() + duration);
+          expanded.push({
+            ...booking,
+            id: booking.id + i * 100000, // Virtual ID to avoid conflicts
+            startDateTime: instanceStart.toISOString(),
+            endDateTime: instanceEnd.toISOString(),
+          });
+        }
+      } else if (booking.repeatType === 'custom' && booking.customDays && booking.customDays.length > 0) {
+        // Custom days repeat - create instance for selected weekdays
+        for (let i = 0; i < daysToExpand; i++) {
+          const instanceStart = addDays(bookingStart, i);
+          const dayOfWeek = instanceStart.getDay(); // 0 = Sunday, 6 = Saturday
+          
+          if (booking.customDays.includes(dayOfWeek)) {
+            const instanceEnd = new Date(instanceStart.getTime() + duration);
+            expanded.push({
+              ...booking,
+              id: booking.id + i * 100000, // Virtual ID to avoid conflicts
+              startDateTime: instanceStart.toISOString(),
+              endDateTime: instanceEnd.toISOString(),
+            });
+          }
+        }
+      }
+    });
+
+    return expanded;
+  }, [rawBookings]);
 
   const timeSlots = Array.from({ length: 24 }, (_, i) => i);
 

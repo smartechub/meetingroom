@@ -273,14 +273,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Viewers cannot create bookings" });
       }
 
-      console.log('Received booking data:', JSON.stringify(req.body, null, 2));
-      
       const bookingData = insertBookingSchema.parse({
         ...req.body,
         userId: req.user.id,
       });
-      
-      console.log('Parsed booking data:', JSON.stringify(bookingData, null, 2));
       
       // Check for conflicts
       const hasConflict = await storage.checkBookingConflict(
