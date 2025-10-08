@@ -229,6 +229,8 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
   });
 
   const onSubmit = async (data: BookingFormData) => {
+    console.log('AdvancedBookingForm - Form data before submission:', data);
+    
     // Check if selected room is available
     if (Array.isArray(roomAvailability) && roomAvailability.length > 0) {
       const selectedRoom = roomAvailability.find(room => room.id.toString() === data.roomId);
@@ -259,12 +261,16 @@ export default function AdvancedBookingForm({ onSuccess }: AdvancedBookingFormPr
       }
     }
 
-    createBookingMutation.mutate({
+    const submissionData = {
       ...data,
       roomId: parseInt(data.roomId),
       attachmentUrl,
       attachmentName,
-    });
+    };
+    
+    console.log('AdvancedBookingForm - Submission data to API:', submissionData);
+    
+    createBookingMutation.mutate(submissionData);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
