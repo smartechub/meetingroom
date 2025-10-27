@@ -28,42 +28,152 @@ export async function initializeDatabase() {
       console.log("Admin user already exists");
     }
     
-    // Check and create default rooms
+    // Remove all existing rooms and create new default rooms
     const existingRooms = await storage.getAllRooms();
     
-    if (existingRooms.length === 0) {
-      const defaultRooms = [
-        {
-          name: "Beam",
-          capacity: 5,
-          description: "IT Side",
-          equipment: ["telephone", "whiteboard", "tv"],
-          isActive: true,
-        },
-        {
-          name: "Flush",
-          capacity: 4,
-          description: "IT Side",
-          equipment: ["telephone", "whiteboard", "mic-speaker", "camera", "tv"],
-          isActive: true,
-        },
-        {
-          name: "Sunshine",
-          capacity: 4,
-          description: "War Room Entrance",
-          equipment: ["telephone", "whiteboard", "mic-speaker", "camera", "tv"],
-          isActive: true,
-        },
-      ];
-      
-      for (const room of defaultRooms) {
-        await storage.createRoom(room);
+    // Delete all existing rooms
+    if (existingRooms.length > 0) {
+      for (const room of existingRooms) {
+        await storage.deleteRoom(room.id);
       }
-      
-      console.log("Default rooms created: Beam, Flush, Sunshine");
-    } else {
-      console.log(`${existingRooms.length} room(s) already exist in database`);
+      console.log(`Removed ${existingRooms.length} existing room(s)`);
     }
+    
+    // Create new default rooms based on the provided list
+    const defaultRooms = [
+      {
+        name: "Galaxy Board Room",
+        capacity: 22,
+        description: "",
+        equipment: ["tv", "mic-speaker", "camera", "telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Vega",
+        capacity: 4,
+        description: "",
+        equipment: ["tv", "telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Radiant",
+        capacity: 6,
+        description: "",
+        equipment: ["tv", "telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Spectrum",
+        capacity: 4,
+        description: "",
+        equipment: ["tv", "telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Nova",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Starlight",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Spark",
+        capacity: 6,
+        description: "",
+        equipment: ["tv", "telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Flash",
+        capacity: 4,
+        description: "",
+        equipment: ["tv", "mic-speaker", "camera", "telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Harmony",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Dawn",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Ray",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Beam",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Zenith",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Eclipse",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Glow",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Orbit",
+        capacity: 6,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Sunshine",
+        capacity: 9,
+        description: "",
+        equipment: ["tv", "telephone", "whiteboard"],
+        isActive: true,
+      },
+      {
+        name: "Firefly",
+        capacity: 4,
+        description: "",
+        equipment: ["telephone", "whiteboard"],
+        isActive: true,
+      },
+    ];
+    
+    for (const room of defaultRooms) {
+      await storage.createRoom(room);
+    }
+    
+    console.log(`Created ${defaultRooms.length} new default rooms`);
     
     return existingAdmin;
   } catch (error) {
