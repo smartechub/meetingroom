@@ -15,6 +15,30 @@ This project was imported from GitHub and successfully configured for the Replit
 - Default admin user and sample rooms created automatically on first run
 - Application is fully functional and accessible at the preview URL
 
+## Recent Changes (October 27, 2025)
+
+### Added: ParticipantSelector with User Suggestions
+- **Feature**: Participants field in booking forms now auto-populates from registered users with dropdown selection
+- **Implementation**:
+  1. **ParticipantSelector Component**: Created reusable component with:
+     - Multi-select dropdown showing all registered users from the database
+     - Searchable/filterable user list with autocomplete
+     - Manual email entry option for users not in the system
+     - Selected participants displayed as removable badges
+     - Proper loading and error state handling
+  2. **Integration**: Added to both BookingForm and AdvancedBookingForm
+  3. **Data Fetching**: Uses TanStack Query to fetch users from `/api/users` endpoint with proper error handling
+- **Files Modified**:
+  - `client/src/components/ParticipantSelector.tsx` (new component)
+  - `client/src/components/BookingForm.tsx` (integrated ParticipantSelector)
+  - `client/src/components/AdvancedBookingForm.tsx` (integrated ParticipantSelector)
+- **User Experience**: 
+  - Click dropdown to see all users with names and emails
+  - Search/filter users by name or email
+  - Select multiple users from dropdown
+  - Manually add external participant emails not in the system
+  - Remove participants by clicking X on badge
+
 ## Recent Changes (October 8, 2025)
 
 ### Fixed: Repeat Bookings Not Showing in Calendar/Scheduler
