@@ -17,6 +17,38 @@ This project was imported from GitHub and successfully configured for the Replit
 
 ## Recent Changes (October 27, 2025)
 
+### Fixed: Booked Time Slots Now Highlighted and Protected
+- **Issue**: Already booked time slots in the calendar scheduler were not visually highlighted, and users could still click on them, only to receive a backend error after trying to book
+- **Root Cause**: 
+  1. Frontend didn't have logic to detect fully booked slots
+  2. The `/api/bookings` endpoint only returned a user's own bookings for non-admin users, so they couldn't see other people's bookings
+- **Fix Applied**:
+  1. **Smart Slot Detection**: Created `isSlotFullyBooked()` function that:
+     - Collects all bookings overlapping with the time slot
+     - Clips booking intervals to slot boundaries
+     - Merges overlapping intervals to avoid double-counting
+     - Returns true if total coverage equals or exceeds the full hour
+     - Handles single full-hour bookings, multiple consecutive bookings (e.g., 9:00-9:30 + 9:30-10:00), and any combination
+  2. **Click Prevention**: Updated `handleSlotClick()` to:
+     - Check if slot is fully booked before opening booking dialog
+     - Show toast notification: "This time slot is already booked. Please choose a different time or room."
+     - Prevent wasted user effort by blocking unavailable slots upfront
+  3. **Visual Highlighting**: Booked slots now display with:
+     - Gray background (vs white for available slots)
+     - `cursor-not-allowed` cursor on hover
+     - No hover effect to clearly indicate unavailability
+  4. **API Fix**: Changed `/api/bookings` to return all bookings for all users (required for calendar visibility)
+     - Edit/delete restrictions remain in place on their respective endpoints
+     - Users can now see which slots are taken by others
+- **Files Modified**:
+  - `client/src/components/CalendarView.tsx` (slot detection, highlighting, click prevention)
+  - `server/routes.ts` (API endpoint fix)
+- **User Experience Now**:
+  - Booked slots are clearly grayed out in the calendar
+  - Clicking a booked slot shows immediate feedback via toast
+  - Booking dialog never opens for unavailable times
+  - Users can easily identify which slots are available at a glance
+
 ### Added: ParticipantSelector with User Suggestions
 - **Feature**: Participants field in booking forms now auto-populates from registered users with dropdown selection
 - **Implementation**:
