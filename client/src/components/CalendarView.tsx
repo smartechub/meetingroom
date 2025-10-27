@@ -290,7 +290,63 @@ export default function CalendarView() {
     },
   });
 
+  const isSlotFullyBooked = (roomId: number, hour: number) => {
+    const roomBookings = getBookingsForRoomAndTime(roomId, hour);
+    
+    if (roomBookings.length === 0) return false;
+    
+    const dayStart = startOfDay(currentDate);
+    const slotStart = new Date(dayStart);
+    slotStart.setHours(hour, 0, 0, 0);
+    const slotEnd = new Date(dayStart);
+    slotEnd.setHours(hour + 1, 0, 0, 0);
+    
+    const slotStartTime = slotStart.getTime();
+    const slotEndTime = slotEnd.getTime();
+    
+    const intervals: Array<{ start: number; end: number }> = roomBookings.map((booking) => {
+      const bookingStart = new Date(booking.startDateTime).getTime();
+      const bookingEnd = new Date(booking.endDateTime).getTime();
+      
+      return {
+        start: Math.max(bookingStart, slotStartTime),
+        end: Math.min(bookingEnd, slotEndTime),
+      };
+    });
+    
+    intervals.sort((a, b) => a.start - b.start);
+    
+    const mergedIntervals: Array<{ start: number; end: number }> = [];
+    for (const interval of intervals) {
+      if (mergedIntervals.length === 0 || mergedIntervals[mergedIntervals.length - 1].end < interval.start) {
+        mergedIntervals.push(interval);
+      } else {
+        mergedIntervals[mergedIntervals.length - 1].end = Math.max(
+          mergedIntervals[mergedIntervals.length - 1].end,
+          interval.end
+        );
+      }
+    }
+    
+    const totalCoveredTime = mergedIntervals.reduce((total, interval) => {
+      return total + (interval.end - interval.start);
+    }, 0);
+    
+    const slotDuration = slotEndTime - slotStartTime;
+    
+    return totalCoveredTime >= slotDuration;
+  };
+
   const handleSlotClick = (roomId: number, roomName: string, hour: number) => {
+    if (isSlotFullyBooked(roomId, hour)) {
+      toast({
+        title: "Room Unavailable",
+        description: "This time slot is already booked. Please choose a different time or room.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const startDate = new Date(currentDate);
     startDate.setHours(hour, 0, 0, 0);
     const endDate = new Date(currentDate);
@@ -673,10 +729,15 @@ export default function CalendarView() {
                           const roomBookings = getBookingsForRoomAndTime(room.id, hour);
                           const currentHour = new Date().getHours();
                           const isCurrentHour = isToday(currentDate) && hour === currentHour;
+                          const isBooked = isSlotFullyBooked(room.id, hour);
                           return (
                             <div
                               key={`${room.id}-${hour}`}
-                              className={`h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`}
+                              className={`h-20 border-r border-b border-gray-200 dark:border-slate-700 last:border-r-0 relative transition-colors ${
+                                isBooked 
+                                  ? 'bg-gray-100 dark:bg-slate-800 cursor-not-allowed' 
+                                  : `cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 ${isCurrentHour ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-900'}`
+                              }`}
                               onClick={() => handleSlotClick(room.id, room.name, hour)}
                               data-testid={`slot-${room.id}-${hour}`}
                             >

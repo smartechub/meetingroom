@@ -201,23 +201,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Booking routes
   app.get('/api/bookings', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      let bookings;
-      
-      if (user?.role === 'admin') {
-        bookings = await storage.getAllBookings();
-        await createAuditLog(req, 'view', 'booking', undefined, { 
-          action: 'view_all_bookings',
-          count: bookings.length,
-          userRole: 'admin'
-        });
-      } else {
-        bookings = await storage.getUserBookings(req.user.id);
-        await createAuditLog(req, 'view', 'booking', undefined, { 
-          action: 'view_my_bookings',
-          count: bookings.length
-        });
-      }
+      const bookings = await storage.getAllBookings();
+      await createAuditLog(req, 'view', 'booking', undefined, { 
+        action: 'view_all_bookings',
+        count: bookings.length
+      });
       
       res.json(bookings);
     } catch (error) {
