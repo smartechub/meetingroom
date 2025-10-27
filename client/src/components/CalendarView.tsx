@@ -84,6 +84,21 @@ const bookingFormSchema = z.object({
 
 type BookingFormData = z.infer<typeof bookingFormSchema>;
 
+const editBookingSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  startDateTime: z.string().min(1, "Start date and time are required"),
+  endDateTime: z.string().min(1, "End date and time are required"),
+  roomId: z.number().min(1, "Room is required"),
+  participants: z.array(z.string().email("Invalid email address")).default([]),
+  repeatType: z.enum(["none", "daily", "weekly", "custom"]).default("none"),
+  customDays: z.array(z.number().min(0).max(6)).default([]),
+  remindMe: z.boolean().default(false),
+  reminderTime: z.number().default(15),
+});
+
+type EditBookingData = z.infer<typeof editBookingSchema>;
+
 export default function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [capacityFilter, setCapacityFilter] = useState<string>("all");
@@ -93,6 +108,21 @@ export default function CalendarView() {
   const [participantEmail, setParticipantEmail] = useState("");
   const [ldapSuggestions, setLdapSuggestions] = useState<any[]>([]);
   const [showLdapSuggestions, setShowLdapSuggestions] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editParticipantEmail, setEditParticipantEmail] = useState("");
+  const [editLdapSuggestions, setEditLdapSuggestions] = useState<any[]>([]);
+  const [showEditLdapSuggestions, setShowEditLdapSuggestions] = useState(false);
+  const [roomAvailability, setRoomAvailability] = useState<Array<{
+    id: number;
+    name: string;
+    capacity: number;
+    description: string;
+    equipment: string[];
+    available: boolean;
+    conflictReason: string | null;
+  }>>([]);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const currentTimeRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -176,6 +206,22 @@ export default function CalendarView() {
       startDateTime: "",
       endDateTime: "",
       roomId: 0,
+      participants: [],
+      repeatType: "none",
+      customDays: [],
+      remindMe: false,
+      reminderTime: 15,
+    },
+  });
+
+  const editForm = useForm<EditBookingData>({
+    resolver: zodResolver(editBookingSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      startDateTime: "",
+      endDateTime: "",
+      roomId: 1,
       participants: [],
       repeatType: "none",
       customDays: [],
@@ -292,6 +338,139 @@ export default function CalendarView() {
       });
     },
   });
+
+  const updateBookingMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: EditBookingData }) => {
+      const response = await apiRequest(`/api/bookings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Booking updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      setIsEditModalOpen(false);
+      setEditingBooking(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const checkRoomAvailability = async (startDateTime: string, endDateTime: string, excludeBookingId?: number) => {
+    if (!startDateTime || !endDateTime) {
+      setRoomAvailability([]);
+      return;
+    }
+
+    setCheckingAvailability(true);
+    try {
+      const response = await apiRequest('/api/rooms/availability', {
+        method: 'POST',
+        body: JSON.stringify({
+          startDateTime,
+          endDateTime,
+          excludeBookingId: excludeBookingId?.toString(),
+        }),
+      });
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setRoomAvailability(data);
+      } else {
+        console.error('API returned non-array response:', data);
+        setRoomAvailability([]);
+      }
+    } catch (error) {
+      console.error('Error checking room availability:', error);
+      setRoomAvailability([]);
+    } finally {
+      setCheckingAvailability(false);
+    }
+  };
+
+  const handleEditBooking = async (booking: Booking) => {
+    const user = currentUser as any;
+    if (!user || booking.userId !== user.id) {
+      toast({
+        title: "Unauthorized",
+        description: "You can only edit your own bookings",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const actualBookingId = booking.id > 100000 ? booking.id % 100000 : booking.id;
+
+    setEditingBooking(booking);
+    const startDate = new Date(booking.startDateTime);
+    const endDate = new Date(booking.endDateTime);
+    
+    const startDateTimeStr = `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}T${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
+    const endDateTimeStr = `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}T${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+    
+    editForm.reset({
+      title: booking.title,
+      description: booking.description || "",
+      startDateTime: startDateTimeStr,
+      endDateTime: endDateTimeStr,
+      roomId: booking.roomId,
+      participants: booking.participants || [],
+      repeatType: (booking.repeatType as "none" | "daily" | "weekly" | "custom") || "none",
+      customDays: booking.customDays || [],
+      remindMe: (booking as any).remindMe || false,
+      reminderTime: (booking as any).reminderTime || 15,
+    });
+    
+    await checkRoomAvailability(startDateTimeStr, endDateTimeStr, actualBookingId);
+    setIsEditModalOpen(true);
+  };
+
+  const onEditSubmit = (data: EditBookingData) => {
+    if (editingBooking) {
+      const actualBookingId = editingBooking.id > 100000 ? editingBooking.id % 100000 : editingBooking.id;
+      updateBookingMutation.mutate({
+        id: actualBookingId,
+        data: {
+          ...data,
+          startDateTime: data.startDateTime,
+          endDateTime: data.endDateTime,
+        }
+      });
+    }
+  };
+
+  const addEditParticipant = () => {
+    if (editParticipantEmail && editParticipantEmail.includes('@')) {
+      const currentParticipants = editForm.getValues('participants') || [];
+      if (!currentParticipants.includes(editParticipantEmail)) {
+        editForm.setValue('participants', [...currentParticipants, editParticipantEmail]);
+        setEditParticipantEmail("");
+        setShowEditLdapSuggestions(false);
+        setEditLdapSuggestions([]);
+      }
+    }
+  };
+
+  const removeEditParticipant = (emailToRemove: string) => {
+    const currentParticipants = editForm.getValues('participants') || [];
+    editForm.setValue('participants', currentParticipants.filter(email => email !== emailToRemove));
+  };
+
+  const toggleEditCustomDay = (dayValue: number) => {
+    const currentDays = editForm.getValues('customDays') || [];
+    const newDays = currentDays.includes(dayValue)
+      ? currentDays.filter(day => day !== dayValue)
+      : [...currentDays, dayValue].sort();
+    editForm.setValue('customDays', newDays);
+  };
 
   const canSeeFullDetails = (booking: Booking) => {
     if (!currentUser) return false;
@@ -491,6 +670,20 @@ export default function CalendarView() {
       return () => clearTimeout(timer);
     }
   }, [currentDate, roomsLoading, bookingsLoading, filteredRooms.length]);
+
+  useEffect(() => {
+    if (editingBooking) {
+      const subscription = editForm.watch((value, { name }) => {
+        if (name === 'startDateTime' || name === 'endDateTime') {
+          if (value.startDateTime && value.endDateTime) {
+            const actualBookingId = editingBooking.id > 100000 ? editingBooking.id % 100000 : editingBooking.id;
+            checkRoomAvailability(value.startDateTime, value.endDateTime, actualBookingId);
+          }
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [editForm, editingBooking]);
 
   const getBookingsForRoomAndTime = (roomId: number, hour: number) => {
     const dayStart = startOfDay(currentDate);
@@ -786,16 +979,26 @@ export default function CalendarView() {
                                     ? `${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\nOrganizer: ${booking.user.email}`
                                     : `Booked\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\nOrganizer: ${booking.user.email}`;
                                   
+                                  const user = currentUser as any;
+                                  const isOrganizer = user && booking.userId === user.id;
+                                  
                                   return (
                                     <div
                                       key={booking.id}
-                                      className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm overflow-hidden flex flex-col justify-center`}
+                                      className={`absolute inset-y-2 ${getStatusColor(booking.status)} rounded px-2 py-1 text-white text-xs cursor-pointer transition-all shadow-sm overflow-hidden flex flex-col justify-center ${isOrganizer ? 'hover:opacity-80' : ''}`}
                                       style={{ 
                                         left: `${position.left}%`, 
                                         width: `${position.width}%`,
                                         zIndex: 10
                                       }}
-                                      title={tooltipText}
+                                      title={isOrganizer ? `${tooltipText}\n\nClick to edit` : tooltipText}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isOrganizer) {
+                                          handleEditBooking(booking);
+                                        }
+                                      }}
+                                      data-testid={`booking-${booking.id}`}
                                     >
                                       <div className="font-medium truncate">
                                         {displayInfo.title}
@@ -1105,6 +1308,229 @@ export default function CalendarView() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Booking Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Booking</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Title *</Label>
+                <Input
+                  id="edit-title"
+                  placeholder="Enter booking title"
+                  {...editForm.register('title')}
+                  data-testid="input-edit-title"
+                />
+                {editForm.formState.errors.title && (
+                  <p className="text-sm text-red-600">{editForm.formState.errors.title.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-room">Room *</Label>
+                <Select value={editForm.watch('roomId')?.toString()} onValueChange={(value) => editForm.setValue('roomId', parseInt(value))}>
+                  <SelectTrigger data-testid="select-edit-room">
+                    <SelectValue placeholder="Select a room" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      const currentRoomId = editForm.watch('roomId');
+                      if (roomAvailability.length > 0) {
+                        const availableRooms = roomAvailability.filter(room => room.available);
+                        const currentRoom = roomAvailability.find(room => room.id === currentRoomId);
+                        const roomsToShow = currentRoom && !currentRoom.available 
+                          ? [...availableRooms, currentRoom]
+                          : availableRooms;
+                        return roomsToShow.map((room: any) => (
+                          <SelectItem key={room.id} value={room.id.toString()}>
+                            {room.name} (Capacity: {room.capacity}) {!room.available ? '(Currently selected - unavailable)' : ''}
+                          </SelectItem>
+                        ));
+                      }
+                      return rooms.map((room: any) => (
+                        <SelectItem key={room.id} value={room.id.toString()}>
+                          {room.name} (Capacity: {room.capacity})
+                        </SelectItem>
+                      ));
+                    })()}
+                  </SelectContent>
+                </Select>
+                {checkingAvailability && (
+                  <p className="text-sm text-blue-600">Checking availability...</p>
+                )}
+                {roomAvailability.length > 0 && !checkingAvailability && (
+                  <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Showing {roomAvailability.filter(r => r.available).length} available room(s) for selected time
+                  </p>
+                )}
+                {editForm.formState.errors.roomId && (
+                  <p className="text-sm text-red-600">{editForm.formState.errors.roomId.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="edit-start">Start Date & Time *</Label>
+                <Input
+                  id="edit-start"
+                  type="datetime-local"
+                  {...editForm.register('startDateTime')}
+                  data-testid="input-edit-start"
+                />
+                {editForm.formState.errors.startDateTime && (
+                  <p className="text-sm text-red-600">{editForm.formState.errors.startDateTime.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-end">End Date & Time *</Label>
+                <Input
+                  id="edit-end"
+                  type="datetime-local"
+                  {...editForm.register('endDateTime')}
+                  data-testid="input-edit-end"
+                />
+                {editForm.formState.errors.endDateTime && (
+                  <p className="text-sm text-red-600">{editForm.formState.errors.endDateTime.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="Enter booking description..."
+                {...editForm.register('description')}
+                data-testid="textarea-edit-description"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center space-x-2">
+                <Users className="w-4 h-4" />
+                <span>Participants</span>
+              </Label>
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Add participant email"
+                  value={editParticipantEmail}
+                  onChange={(e) => setEditParticipantEmail(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      addEditParticipant();
+                    }
+                  }}
+                  data-testid="input-edit-participant"
+                />
+                <Button type="button" onClick={addEditParticipant} size="sm" data-testid="button-add-edit-participant">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {editForm.watch('participants') && editForm.watch('participants').length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {editForm.watch('participants').map((email, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center space-x-1" data-testid={`badge-edit-participant-${index}`}>
+                      <span>{email}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeEditParticipant(email)}
+                        className="ml-1 hover:text-red-500"
+                        data-testid={`button-remove-edit-participant-${index}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Repeat</Label>
+              <Select 
+                value={editForm.watch('repeatType')} 
+                onValueChange={(value) => editForm.setValue('repeatType', value as any)}
+              >
+                <SelectTrigger data-testid="select-edit-repeat">
+                  <SelectValue placeholder="Does not repeat" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Does not repeat</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {editForm.watch('repeatType') === 'custom' && (
+                <div className="mt-3">
+                  <Label>Select Days</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {weekDays.map((day) => (
+                      <Button
+                        key={day.value}
+                        type="button"
+                        variant={(editForm.watch('customDays') || []).includes(day.value) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleEditCustomDay(day.value)}
+                        data-testid={`button-edit-day-${day.label.toLowerCase()}`}
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-remindMe"
+                  checked={editForm.watch('remindMe')}
+                  onCheckedChange={(checked) => editForm.setValue('remindMe', !!checked)}
+                  data-testid="checkbox-edit-remind-me"
+                />
+                <Label htmlFor="edit-remindMe" className="flex items-center space-x-2">
+                  <Bell className="w-4 h-4" />
+                  <span>Remind me</span>
+                </Label>
+              </div>
+              {editForm.watch('remindMe') && (
+                <Select 
+                  value={editForm.watch('reminderTime')?.toString()} 
+                  onValueChange={(value) => editForm.setValue('reminderTime', parseInt(value))}
+                >
+                  <SelectTrigger data-testid="select-edit-reminder-time">
+                    <SelectValue placeholder="Select reminder time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reminderOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)} data-testid="button-cancel-edit">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateBookingMutation.isPending} data-testid="button-submit-edit">
+                {updateBookingMutation.isPending ? 'Updating...' : 'Update Booking'}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
