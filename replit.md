@@ -17,6 +17,33 @@ This project was imported from GitHub and successfully configured for the Replit
 
 ## Recent Changes (October 27, 2025)
 
+### Added: Comprehensive Privacy Controls for Meeting Details
+- **Feature**: Meeting organizers and participants see full meeting details (title, description, participants), while non-participants only see limited information (organizer, time, "Booked")
+- **Implementation**:
+  1. **Backend Privacy Enforcement** (`server/routes.ts`):
+     - Updated `/api/bookings` endpoint to filter sensitive data server-side before sending to client
+     - For each booking, checks if current user is organizer or participant
+     - Uses case-insensitive email comparison (toLowerCase + trim) for robust participant matching
+     - Returns full details (title, description, participants) only to authorized users
+     - Returns redacted data ("Booked" title, null description, empty participants array) to non-participants
+     - Organizer name/email remains visible to all for transparency
+  2. **Frontend Display Logic** (`CalendarView.tsx`):
+     - Added `canSeeFullDetails()` function to check authorization with case-insensitive email matching
+     - Added `getBookingDisplayInfo()` to format display based on authorization
+     - Participants/organizer see: Full meeting title, description, participant list, organizer name, meeting time
+     - Non-participants see: "Booked", organizer name, meeting time
+- **Security**: 
+  - Privacy enforced server-side - sensitive data never sent to unauthorized clients
+  - Network panel shows redacted data for non-participants
+  - Email matching normalized (trim + lowercase) to prevent false negatives
+- **Files Modified**:
+  - `server/routes.ts` (backend privacy filtering)
+  - `client/src/components/CalendarView.tsx` (frontend display logic)
+- **User Experience**:
+  - Organizers and participants see complete meeting information
+  - Non-participants can see when rooms are booked and who organized it, but not the meeting subject or attendees
+  - Privacy respected while maintaining calendar availability transparency
+
 ### Fixed: Booked Time Slots Now Highlighted and Protected
 - **Issue**: Already booked time slots in the calendar scheduler were not visually highlighted, and users could still click on them, only to receive a backend error after trying to book
 - **Root Cause**: 
