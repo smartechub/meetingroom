@@ -17,6 +17,7 @@ import { Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle, X, Plus, Us
 import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import RoomSelector from "./RoomSelector";
+import ParticipantSelector from "./ParticipantSelector";
 
 const bookingSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -37,7 +38,6 @@ export default function BookingForm() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [participantEmail, setParticipantEmail] = useState("");
   const [roomAvailability, setRoomAvailability] = useState<Array<{
     id: number;
     name: string;
@@ -96,28 +96,6 @@ export default function BookingForm() {
     { value: 6, label: "Saturday" },
   ];
 
-  // Helper functions for participants
-  const addParticipant = () => {
-    if (participantEmail && participantEmail.includes('@')) {
-      const currentParticipants = form.getValues('participants') || [];
-      if (!currentParticipants.includes(participantEmail)) {
-        form.setValue('participants', [...currentParticipants, participantEmail]);
-        setParticipantEmail("");
-      }
-    }
-  };
-
-  const removeParticipant = (emailToRemove: string) => {
-    const currentParticipants = form.getValues('participants') || [];
-    form.setValue('participants', currentParticipants.filter(email => email !== emailToRemove));
-  };
-
-  const handleParticipantKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addParticipant();
-    }
-  };
 
   // Helper functions for custom days
   const toggleCustomDay = (dayValue: number) => {
@@ -371,6 +349,11 @@ export default function BookingForm() {
                   {...form.register('description')}
                 />
               </div>
+
+              <ParticipantSelector
+                participants={form.watch('participants') || []}
+                onParticipantsChange={(participants) => form.setValue('participants', participants)}
+              />
 
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
