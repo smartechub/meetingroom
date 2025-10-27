@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Calendar, 
@@ -56,6 +57,7 @@ interface Booking {
   startDateTime: string;
   endDateTime: string;
   status: string;
+  participants?: string[];
   repeatType?: string;
   customDays?: number[];
   room: Room;
@@ -94,6 +96,7 @@ export default function CalendarView() {
   const timelineRef = useRef<HTMLDivElement>(null);
   const currentTimeRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ['/api/rooms'],
@@ -289,6 +292,37 @@ export default function CalendarView() {
       });
     },
   });
+
+  const canSeeFullDetails = (booking: Booking) => {
+    if (!currentUser) return false;
+    
+    const user = currentUser as any;
+    if (booking.userId === user.id) return true;
+    
+    if (booking.participants && Array.isArray(booking.participants)) {
+      const userEmail = (user.email || '').toLowerCase().trim();
+      return booking.participants.some((email: string) => 
+        email.toLowerCase().trim() === userEmail
+      );
+    }
+    
+    return false;
+  };
+
+  const getBookingDisplayInfo = (booking: Booking) => {
+    if (canSeeFullDetails(booking)) {
+      return {
+        title: booking.title,
+        subtitle: `${booking.user.firstName || ''} ${booking.user.lastName || ''}`.trim() || booking.user.email,
+      };
+    } else {
+      const organizerName = `${booking.user.firstName || ''} ${booking.user.lastName || ''}`.trim() || booking.user.email;
+      return {
+        title: 'Booked',
+        subtitle: organizerName,
+      };
+    }
+  };
 
   const isSlotFullyBooked = (roomId: number, hour: number) => {
     const roomBookings = getBookingsForRoomAndTime(roomId, hour);
@@ -747,6 +781,10 @@ export default function CalendarView() {
                                   const position = calculateBookingPosition(booking);
                                   const bookingStart = new Date(booking.startDateTime);
                                   const bookingEnd = new Date(booking.endDateTime);
+                                  const displayInfo = getBookingDisplayInfo(booking);
+                                  const tooltipText = canSeeFullDetails(booking) 
+                                    ? `${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\nOrganizer: ${booking.user.email}`
+                                    : `Booked\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\nOrganizer: ${booking.user.email}`;
                                   
                                   return (
                                     <div
@@ -757,10 +795,10 @@ export default function CalendarView() {
                                         width: `${position.width}%`,
                                         zIndex: 10
                                       }}
-                                      title={`${booking.title}\n${format(bookingStart, 'h:mm a')} - ${format(bookingEnd, 'h:mm a')}\n${booking.user.email}`}
+                                      title={tooltipText}
                                     >
                                       <div className="font-medium truncate">
-                                        {booking.title}
+                                        {displayInfo.title}
                                       </div>
                                       {position.width > 15 && (
                                         <div className="text-[10px] opacity-90 truncate">
