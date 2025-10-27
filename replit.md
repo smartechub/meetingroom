@@ -17,6 +17,38 @@ This project was imported from GitHub and successfully configured for the Replit
 
 ## Recent Changes (October 27, 2025)
 
+### Added: Click-to-Edit Meeting Functionality in Calendar View
+- **Feature**: Meeting organizers can now click directly on their booked meeting time frames in the calendar to open the edit dialog
+- **Implementation**:
+  1. **Calendar Click Handler** (`CalendarView.tsx`):
+     - Added `handleEditBooking()` function that checks if current user is the meeting organizer
+     - Uses `currentUser.id === booking.userId` to verify ownership
+     - Shows "Unauthorized" toast if non-organizer tries to edit
+     - Properly handles recurring booking IDs using modulo operator (`booking.id % 100000`)
+  2. **Edit Modal Dialog**:
+     - Comprehensive form with all booking fields: title, room, dates, description, participants, repeat options, reminders
+     - Real-time room availability checking that excludes the current booking being edited
+     - Form pre-populated with existing booking data
+     - Uses React Hook Form with Zod validation
+  3. **Update Mutation**:
+     - PUT request to `/api/bookings/:id` with updated booking data
+     - Invalidates bookings cache on success
+     - Shows success/error toast notifications
+  4. **Critical Bug Fix**:
+     - Fixed recurring booking ID normalization from `Math.floor(booking.id / 100000)` to `booking.id % 100000`
+     - Previous logic caused edits to target wrong booking records (e.g., virtual ID 100045 → 1 instead of 45)
+     - Now correctly extracts actual booking ID: 100045 % 100000 = 45, 200045 % 100000 = 45
+- **Security**:
+  - Authorization enforced - only organizers can edit their meetings
+  - Booking ID validation prevents editing unrelated bookings
+- **Files Modified**:
+  - `client/src/components/CalendarView.tsx` (edit functionality, modal, form handling)
+- **User Experience**:
+  - Organizers: Click on any of their booked meetings to edit details
+  - Non-organizers: See "Unauthorized" toast if they try to edit someone else's meeting
+  - Edit modal shows all booking details with real-time room availability feedback
+  - Changes saved with single click on "Update Booking" button
+
 ### Added: Comprehensive Privacy Controls for Meeting Details
 - **Feature**: Meeting organizers and participants see full meeting details (title, description, participants), while non-participants only see limited information (organizer, time, "Booked")
 - **Implementation**:
