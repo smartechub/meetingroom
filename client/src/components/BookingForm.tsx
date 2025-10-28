@@ -160,8 +160,10 @@ export default function BookingForm() {
         title: "Success",
         description: "Booking created successfully",
       });
-      await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/bookings/my'] });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['/api/bookings'] }),
+        queryClient.refetchQueries({ queryKey: ['/api/bookings/my'] })
+      ]);
       navigate('/my-bookings');
     },
     onError: (error: any) => {
