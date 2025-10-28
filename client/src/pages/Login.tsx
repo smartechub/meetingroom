@@ -61,7 +61,7 @@ export default function Login() {
         
         <Card>
           <CardHeader>
-            <CardTitle>Light Finance Meeting Room</CardTitle>
+            <CardTitle>Meeting Room Booking</CardTitle>
             <CardDescription>
               Please enter your email and password to continue
             </CardDescription>
