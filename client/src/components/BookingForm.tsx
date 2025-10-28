@@ -153,19 +153,17 @@ export default function BookingForm() {
         method: 'POST',
         body: JSON.stringify(data)
       });
-      return response;
+      return response.json();
     },
-    onSuccess: async () => {
+    onSuccess: async (newBooking) => {
       toast({
         title: "Success",
         description: "Booking created successfully",
       });
-      queryClient.resetQueries({ queryKey: ['/api/bookings'] });
-      queryClient.resetQueries({ queryKey: ['/api/bookings/my'] });
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['/api/bookings'], type: 'active' }),
-        queryClient.refetchQueries({ queryKey: ['/api/bookings/my'], type: 'active' })
-      ]);
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings/my'] });
+      
       navigate('/my-bookings');
     },
     onError: (error: any) => {

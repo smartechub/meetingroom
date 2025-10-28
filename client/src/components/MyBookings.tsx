@@ -68,6 +68,7 @@ export default function MyBookings() {
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['/api/bookings/my'],
+    refetchOnMount: 'always',
   });
 
   const { data: rooms = [] } = useQuery({
