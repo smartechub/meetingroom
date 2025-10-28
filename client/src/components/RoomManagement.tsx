@@ -12,6 +12,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { 
   DoorOpen, 
   Plus, 
   Edit, 
@@ -53,21 +63,11 @@ export default function RoomManagement() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<any>(null);
   const [roomImage, setRoomImage] = useState<File | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<number | null>(null);
 
-  const { data: rooms = [], isLoading } = useQuery({
+  const { data: rooms = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/rooms'],
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
   const form = useForm<RoomFormData>({
@@ -241,8 +241,15 @@ export default function RoomManagement() {
   };
 
   const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this room?')) {
-      deleteRoomMutation.mutate(id);
+    setRoomToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (roomToDelete !== null) {
+      deleteRoomMutation.mutate(roomToDelete);
+      setIsDeleteDialogOpen(false);
+      setRoomToDelete(null);
     }
   };
 
@@ -579,6 +586,28 @@ export default function RoomManagement() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-delete-room-confirmation">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Room</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this room? This action cannot be undone and will affect all future bookings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-room">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-room"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
