@@ -38,7 +38,7 @@ export async function createSampleNotifications() {
       await storage.createNotification({
         userId: user.id,
         title: "System Update",
-        message: "We've added new features to improve your booking experience. Check out the calendar view!",
+        message: "We've added new features to improve your booking experience. Check out the room scheduler!",
         type: "system",
         isRead: true,
         relatedId: null,

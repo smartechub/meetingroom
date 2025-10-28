@@ -162,7 +162,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Calendar View', href: '/calendar', icon: Calendar },
+    { name: 'Room Scheduler', href: '/calendar', icon: Calendar },
     { name: 'My Bookings', href: '/my-bookings', icon: List },
     { name: 'Calendar Sync', href: '/calendar-sync', icon: RefreshCw },
   ];
@@ -614,7 +614,7 @@ function getPageTitle(location: string): string {
   const titles: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/book': 'Book Room',
-    '/calendar': 'Calendar View',
+    '/calendar': 'Room Scheduler',
     '/my-bookings': 'My Bookings',
     '/users': 'User Management',
     '/rooms': 'Room Management',
