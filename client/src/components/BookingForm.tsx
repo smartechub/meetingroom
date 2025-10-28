@@ -160,9 +160,11 @@ export default function BookingForm() {
         title: "Success",
         description: "Booking created successfully",
       });
+      queryClient.resetQueries({ queryKey: ['/api/bookings'] });
+      queryClient.resetQueries({ queryKey: ['/api/bookings/my'] });
       await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['/api/bookings'] }),
-        queryClient.refetchQueries({ queryKey: ['/api/bookings/my'] })
+        queryClient.refetchQueries({ queryKey: ['/api/bookings'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['/api/bookings/my'], type: 'active' })
       ]);
       navigate('/my-bookings');
     },
