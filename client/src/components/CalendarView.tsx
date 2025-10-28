@@ -125,10 +125,12 @@ export default function CalendarView() {
 
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ['/api/rooms'],
+    refetchOnMount: 'always',
   });
 
   const { data: rawBookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
     queryKey: ['/api/bookings'],
+    refetchOnMount: 'always',
   });
 
   // Expand repeating bookings into multiple instances
