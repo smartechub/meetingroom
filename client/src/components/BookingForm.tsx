@@ -155,13 +155,13 @@ export default function BookingForm() {
       });
       return response;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Success",
         description: "Booking created successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/bookings/my'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/bookings/my'] });
       navigate('/my-bookings');
     },
     onError: (error: any) => {
