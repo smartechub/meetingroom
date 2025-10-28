@@ -29,10 +29,7 @@ import {
   Trash2,
   Filter,
   Download,
-  Users,
-  Bell,
-  Plus,
-  X
+  Bell
 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +37,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import ParticipantSelector from "@/components/ParticipantSelector";
 
 const editBookingSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -64,7 +62,6 @@ export default function MyBookings() {
   const [roomFilter, setRoomFilter] = useState("all");
   const [editingBooking, setEditingBooking] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [participantEmail, setParticipantEmail] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<number | null>(null);
   const [roomAvailability, setRoomAvailability] = useState<Array<{
@@ -192,28 +189,6 @@ export default function MyBookings() {
     { value: 5, label: "Friday" },
     { value: 6, label: "Saturday" },
   ];
-
-  const addParticipant = () => {
-    if (participantEmail && participantEmail.includes('@')) {
-      const currentParticipants = form.getValues('participants') || [];
-      if (!currentParticipants.includes(participantEmail)) {
-        form.setValue('participants', [...currentParticipants, participantEmail]);
-        setParticipantEmail("");
-      }
-    }
-  };
-
-  const removeParticipant = (emailToRemove: string) => {
-    const currentParticipants = form.getValues('participants') || [];
-    form.setValue('participants', currentParticipants.filter(email => email !== emailToRemove));
-  };
-
-  const handleParticipantKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addParticipant();
-    }
-  };
 
   const toggleCustomDay = (dayValue: number) => {
     const currentDays = form.getValues('customDays') || [];
@@ -590,42 +565,10 @@ export default function MyBookings() {
               />
             </div>
 
-            {/* Participants */}
-            <div className="space-y-2">
-              <Label className="flex items-center space-x-2">
-                <Users className="w-4 h-4" />
-                <span>Participants</span>
-              </Label>
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Add participant email (type to search LDAP)"
-                  value={participantEmail}
-                  onChange={(e) => setParticipantEmail(e.target.value)}
-                  onKeyPress={handleParticipantKeyPress}
-                  data-testid="input-participant-email"
-                />
-                <Button type="button" onClick={addParticipant} size="sm" data-testid="button-add-participant">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {form.watch('participants') && form.watch('participants').length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {form.watch('participants').map((email, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center space-x-1" data-testid={`badge-participant-${index}`}>
-                      <span>{email}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeParticipant(email)}
-                        className="ml-1 hover:text-red-500"
-                        data-testid={`button-remove-participant-${index}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ParticipantSelector
+              participants={form.watch('participants') || []}
+              onParticipantsChange={(participants) => form.setValue('participants', participants)}
+            />
 
             {/* Repeat Options */}
             <div className="space-y-2">
