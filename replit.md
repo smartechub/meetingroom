@@ -17,6 +17,23 @@ This project was imported from GitHub and successfully configured for the Replit
 
 ## Recent Changes (October 28, 2025)
 
+### Fixed: Participant Auto-Fill from User Management
+- **Issue**: Non-admin users couldn't see the user list when booking rooms because the `/api/users` endpoint required admin access
+- **Fix**: Removed admin-only restriction from GET `/api/users` endpoint
+- **How It Works Now**:
+  - When booking a room, click "Select from user list..." to see all users
+  - Users are displayed with their full names and email addresses
+  - Search by name or email to quickly find people
+  - Select multiple participants from the dropdown
+  - Selected participants show with their names (not just emails)
+  - Can still manually add external email addresses not in the system
+- **Files Modified**: 
+  - `server/routes.ts` (removed admin restriction from user list endpoint)
+- **User Experience**:
+  - All authenticated users can now see the complete user directory when adding meeting participants
+  - Participant names auto-fill from the User Management list
+  - Admin restrictions remain for creating, editing, and deleting users
+
 ### Configured: Default Email Settings
 - **SMTP Configuration**: Default email settings have been configured in the database for sending notifications
 - **Settings**:

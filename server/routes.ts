@@ -458,14 +458,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User management routes (Admin only)
+  // User management routes
+  // GET all users - accessible to all authenticated users for participant selection
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      if (user?.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      
       const users = await storage.getAllUsers();
       res.json(users);
     } catch (error) {
