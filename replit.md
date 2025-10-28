@@ -15,6 +15,24 @@ This project was imported from GitHub and successfully configured for the Replit
 - Default admin user and sample rooms created automatically on first run
 - Application is fully functional and accessible at the preview URL
 
+## Recent Changes (October 28, 2025)
+
+### Configured: Default Email Settings
+- **SMTP Configuration**: Default email settings have been configured in the database for sending notifications
+- **Settings**:
+  - SMTP Host: mail.lightfinance.com
+  - SMTP Port: 465 (secure)
+  - SMTP Username: no_reply@lightfinance.com
+  - From Email: no_reply@lightfinance.com
+  - From Name: Meeting Room Booking System
+  - Notifications: All email features enabled (booking notifications, reminders, password reset)
+- **Functionality**:
+  - Booking notifications with ICS calendar invites sent to participants
+  - Password reset emails for users
+  - Meeting reminders before scheduled times
+- **Security**: SMTP credentials stored in database (consider moving to environment variables for production)
+- **Access**: Email settings can be viewed and modified by admins in the admin panel
+
 ## Recent Changes (October 27, 2025)
 
 ### Added: Click-to-Edit Meeting Functionality in Calendar View
