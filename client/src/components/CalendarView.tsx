@@ -37,6 +37,7 @@ import {
   Clock
 } from "lucide-react";
 import { format, addDays, subDays, isToday, startOfDay, endOfDay } from "date-fns";
+import ParticipantSelector from "./ParticipantSelector";
 
 interface Room {
   id: number;
@@ -105,14 +106,8 @@ export default function CalendarView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ roomId: number; roomName: string; hour: number } | null>(null);
-  const [participantEmail, setParticipantEmail] = useState("");
-  const [ldapSuggestions, setLdapSuggestions] = useState<any[]>([]);
-  const [showLdapSuggestions, setShowLdapSuggestions] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editParticipantEmail, setEditParticipantEmail] = useState("");
-  const [editLdapSuggestions, setEditLdapSuggestions] = useState<any[]>([]);
-  const [showEditLdapSuggestions, setShowEditLdapSuggestions] = useState(false);
   const [roomAvailability, setRoomAvailability] = useState<Array<{
     id: number;
     name: string;
@@ -250,61 +245,6 @@ export default function CalendarView() {
     { value: 6, label: "Sat" },
   ];
 
-  const searchLdapEmails = async (query: string) => {
-    if (query.length < 2) {
-      setLdapSuggestions([]);
-      setShowLdapSuggestions(false);
-      return;
-    }
-    
-    try {
-      const response = await fetch(`/api/ldap/search-emails?query=${encodeURIComponent(query)}`);
-      if (response.ok) {
-        const users = await response.json();
-        setLdapSuggestions(users);
-        setShowLdapSuggestions(users.length > 0);
-      }
-    } catch (error) {
-      console.error('Error searching LDAP:', error);
-    }
-  };
-
-  const handleParticipantInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setParticipantEmail(value);
-    searchLdapEmails(value);
-  };
-
-  const selectLdapSuggestion = (email: string) => {
-    setParticipantEmail(email);
-    setShowLdapSuggestions(false);
-    setLdapSuggestions([]);
-    addParticipant();
-  };
-
-  const addParticipant = () => {
-    if (participantEmail && participantEmail.includes('@')) {
-      const currentParticipants = form.getValues('participants') || [];
-      if (!currentParticipants.includes(participantEmail)) {
-        form.setValue('participants', [...currentParticipants, participantEmail]);
-        setParticipantEmail("");
-        setShowLdapSuggestions(false);
-        setLdapSuggestions([]);
-      }
-    }
-  };
-
-  const removeParticipant = (emailToRemove: string) => {
-    const currentParticipants = form.getValues('participants') || [];
-    form.setValue('participants', currentParticipants.filter(email => email !== emailToRemove));
-  };
-
-  const handleParticipantKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addParticipant();
-    }
-  };
 
   const toggleCustomDay = (dayValue: number) => {
     const currentDays = form.getValues('customDays') || [];
@@ -447,22 +387,6 @@ export default function CalendarView() {
     }
   };
 
-  const addEditParticipant = () => {
-    if (editParticipantEmail && editParticipantEmail.includes('@')) {
-      const currentParticipants = editForm.getValues('participants') || [];
-      if (!currentParticipants.includes(editParticipantEmail)) {
-        editForm.setValue('participants', [...currentParticipants, editParticipantEmail]);
-        setEditParticipantEmail("");
-        setShowEditLdapSuggestions(false);
-        setEditLdapSuggestions([]);
-      }
-    }
-  };
-
-  const removeEditParticipant = (emailToRemove: string) => {
-    const currentParticipants = editForm.getValues('participants') || [];
-    editForm.setValue('participants', currentParticipants.filter(email => email !== emailToRemove));
-  };
 
   const toggleEditCustomDay = (dayValue: number) => {
     const currentDays = editForm.getValues('customDays') || [];
@@ -1129,61 +1053,10 @@ export default function CalendarView() {
                 )}
               />
 
-              <div className="space-y-2">
-                <Label className="flex items-center space-x-2">
-                  <Users className="w-4 h-4" />
-                  <span>Participants</span>
-                </Label>
-                <div className="flex space-x-2 relative">
-                  <div className="flex-1 relative">
-                    <Input
-                      type="email"
-                      placeholder="Add participant email (type to search LDAP)"
-                      value={participantEmail}
-                      onChange={handleParticipantInputChange}
-                      onKeyPress={handleParticipantKeyPress}
-                      data-testid="input-participant-email"
-                    />
-                    {showLdapSuggestions && ldapSuggestions.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-auto">
-                        {ldapSuggestions.map((user, index) => (
-                          <div
-                            key={index}
-                            className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer"
-                            onClick={() => selectLdapSuggestion(user.email)}
-                            data-testid={`ldap-suggestion-${index}`}
-                          >
-                            <div className="font-medium text-sm">{user.email}</div>
-                            {user.name && (
-                              <div className="text-xs text-gray-500 dark:text-slate-400">{user.name}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={addParticipant}
-                    data-testid="button-add-participant"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {form.watch('participants')?.map((email, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center space-x-1">
-                      <span>{email}</span>
-                      <X
-                        className="w-3 h-3 cursor-pointer"
-                        onClick={() => removeParticipant(email)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+              <ParticipantSelector
+                participants={form.watch('participants') || []}
+                onParticipantsChange={(participants) => form.setValue('participants', participants)}
+              />
 
               <FormField
                 control={form.control}
@@ -1411,46 +1284,10 @@ export default function CalendarView() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center space-x-2">
-                <Users className="w-4 h-4" />
-                <span>Participants</span>
-              </Label>
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Add participant email"
-                  value={editParticipantEmail}
-                  onChange={(e) => setEditParticipantEmail(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' || e.key === ',') {
-                      e.preventDefault();
-                      addEditParticipant();
-                    }
-                  }}
-                  data-testid="input-edit-participant"
-                />
-                <Button type="button" onClick={addEditParticipant} size="sm" data-testid="button-add-edit-participant">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {editForm.watch('participants') && editForm.watch('participants').length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {editForm.watch('participants').map((email, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center space-x-1" data-testid={`badge-edit-participant-${index}`}>
-                      <span>{email}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeEditParticipant(email)}
-                        className="ml-1 hover:text-red-500"
-                        data-testid={`button-remove-edit-participant-${index}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ParticipantSelector
+              participants={editForm.watch('participants') || []}
+              onParticipantsChange={(participants) => editForm.setValue('participants', participants)}
+            />
 
             <div className="space-y-2">
               <Label>Repeat</Label>

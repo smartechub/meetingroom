@@ -17,21 +17,30 @@ This project was imported from GitHub and successfully configured for the Replit
 
 ## Recent Changes (October 28, 2025)
 
-### Fixed: Participant Auto-Fill from User Management
-- **Issue**: Non-admin users couldn't see the user list when booking rooms because the `/api/users` endpoint required admin access
-- **Fix**: Removed admin-only restriction from GET `/api/users` endpoint
+### Fixed: Participant Auto-Fill Dropdown from User Management
+- **Issue**: 
+  1. Non-admin users couldn't see the user list when booking rooms because the `/api/users` endpoint required admin access
+  2. Calendar scheduler (CalendarView) was using old LDAP search input instead of the modern ParticipantSelector component
+  3. When typing in participant field, no dropdown appeared with user suggestions
+- **Fix**: 
+  1. Removed admin-only restriction from GET `/api/users` endpoint
+  2. Replaced LDAP search inputs with ParticipantSelector component in CalendarView
+  3. Removed all LDAP-related state variables and functions for participants
 - **How It Works Now**:
-  - When booking a room, click "Select from user list..." to see all users
+  - **Click "Select from user list..."** button to see dropdown with all users
   - Users are displayed with their full names and email addresses
-  - Search by name or email to quickly find people
-  - Select multiple participants from the dropdown
-  - Selected participants show with their names (not just emails)
+  - **Search feature** - Type to filter users by name or email
+  - **Multi-select** - Select multiple participants from the dropdown
+  - Selected participants show with their names (not just emails) as badges
   - Can still manually add external email addresses not in the system
 - **Files Modified**: 
   - `server/routes.ts` (removed admin restriction from user list endpoint)
+  - `client/src/components/CalendarView.tsx` (replaced LDAP input with ParticipantSelector)
 - **User Experience**:
-  - All authenticated users can now see the complete user directory when adding meeting participants
+  - All booking forms now use the same modern dropdown selector
+  - All authenticated users can see the complete user directory when adding meeting participants
   - Participant names auto-fill from the User Management list
+  - No more LDAP configuration needed for basic participant selection
   - Admin restrictions remain for creating, editing, and deleting users
 
 ### Configured: Default Email Settings
