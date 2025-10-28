@@ -161,6 +161,7 @@ export default function BookingForm() {
         description: "Booking created successfully",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings/my'] });
       navigate('/my-bookings');
     },
     onError: (error: any) => {
