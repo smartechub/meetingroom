@@ -17,6 +17,39 @@ This project was imported from GitHub and successfully configured for the Replit
 
 ## Recent Changes (October 28, 2025)
 
+### Added: "Clear All" Button for Notifications
+- **Feature**: Users can now clear all notifications at once with a single click
+- **Implementation**:
+  1. **Backend**:
+     - Added `deleteAllNotifications(userId)` method to storage interface
+     - Created DELETE `/api/notifications` endpoint that removes all notifications for the current user
+     - Endpoint secured with authentication - only deletes user's own notifications
+  2. **Frontend** (`NotificationDropdown.tsx`):
+     - Added "Clear All" button next to "Mark all read" button in notifications dropdown
+     - Button appears only when user has notifications
+     - Styled in red with trash icon to indicate destructive action
+     - Shows success toast when notifications are cleared
+     - Added proper loading states during deletion
+  3. **Security**:
+     - Server-side authorization ensures users can only delete their own notifications
+     - Uses same authentication middleware as other notification endpoints
+- **Files Modified**:
+  - `server/storage.ts` (added deleteAllNotifications method)
+  - `server/routes.ts` (added DELETE /api/notifications endpoint)
+  - `client/src/components/NotificationDropdown.tsx` (added Clear All button and mutation)
+- **User Experience**:
+  - "Clear All" button displays with trash icon for easy identification
+  - Confirmation via toast notification when notifications are cleared
+  - Notification dropdown automatically refreshes to show empty state
+  - Efficient cleanup of notification history with single click
+
+### Fixed: Bookings Not Appearing After Login/Logout
+- **Issue**: After logging out and logging back in, bookings weren't visible in the Room Scheduler even though they were saved in the database
+- **Root Cause**: TanStack Query was using cached data instead of fetching fresh data from the server when the user returned
+- **Fix**: Added `refetchOnMount: 'always'` to both rooms and bookings queries in CalendarView component
+- **Files Modified**: `client/src/components/CalendarView.tsx`
+- **User Experience**: Room Scheduler now always displays up-to-date booking information, even after logout/login
+
 ### Fixed: Participant Auto-Fill Dropdown from User Management
 - **Issue**: 
   1. Non-admin users couldn't see the user list when booking rooms because the `/api/users` endpoint required admin access

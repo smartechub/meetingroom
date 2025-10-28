@@ -1420,6 +1420,17 @@ EMP003,bob.jones@company.com,Bob,Jones,Analyst,Finance,user`;
     }
   });
 
+  app.delete('/api/notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      await storage.deleteAllNotifications(userId);
+      res.json({ message: "All notifications deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting all notifications:", error);
+      res.status(500).json({ message: "Failed to delete all notifications" });
+    }
+  });
+
   // Analytics routes (admin only)
   app.get('/api/analytics', isAuthenticated, async (req: any, res) => {
     try {
