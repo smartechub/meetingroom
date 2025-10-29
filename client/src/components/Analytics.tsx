@@ -34,16 +34,35 @@ import {
   Filter
 } from "lucide-react";
 
+type AnalyticsData = {
+  summary: {
+    totalBookings: number;
+    totalBookingsChange: number;
+    uniqueUsers: number;
+    uniqueUsersChange: number;
+    averageBookingDuration: number;
+    averageBookingDurationChange: number;
+    peakUtilization: number;
+    peakUtilizationChange: number;
+  };
+  bookingTrends: Array<{ date: string; bookings: number; duration: number }>;
+  roomUtilization: Array<{ name: string; bookings: number; utilization: number; hours: number }>;
+  timeDistribution: Array<{ hour: number; bookings: number }>;
+  userActivity: Array<{ name: string; bookings: number; hours: number }>;
+  bookingStatus: Array<{ name: string; value: number; color: string }>;
+};
+
 export default function Analytics() {
   const [dateRange, setDateRange] = useState("7d");
   const [selectedRoom, setSelectedRoom] = useState("all");
+  const [utilizationView, setUtilizationView] = useState<"day" | "week" | "month">("week");
 
-  const { data: analyticsData, isLoading } = useQuery({
+  const { data: analyticsData, isLoading } = useQuery<AnalyticsData>({
     queryKey: ['/api/analytics', dateRange, selectedRoom],
     retry: false,
   });
 
-  const { data: rooms = [] } = useQuery({
+  const { data: rooms = [] } = useQuery<any[]>({
     queryKey: ['/api/rooms'],
     retry: false,
   });
@@ -320,20 +339,85 @@ export default function Analytics() {
         <TabsContent value="rooms" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Room Utilization</CardTitle>
-              <CardDescription>Booking volume and utilization by room</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Room Utilization</CardTitle>
+                  <CardDescription>Booking volume and utilization by room</CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant={utilizationView === "day" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setUtilizationView("day")}
+                    data-testid="button-utilization-day"
+                  >
+                    Day
+                  </Button>
+                  <Button
+                    variant={utilizationView === "week" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setUtilizationView("week")}
+                    data-testid="button-utilization-week"
+                  >
+                    Week
+                  </Button>
+                  <Button
+                    variant={utilizationView === "month" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setUtilizationView("month")}
+                    data-testid="button-utilization-month"
+                  >
+                    Month
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
+              <div className="mb-4 text-sm text-gray-600 dark:text-slate-400">
+                Viewing: <span className="font-medium capitalize">{utilizationView}ly</span> utilization data
+              </div>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={data.roomUtilization}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="bookings" fill="#8884d8" name="Bookings" />
-                  <Bar dataKey="utilization" fill="#82ca9d" name="Utilization %" />
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-slate-700" />
+                  <XAxis 
+                    dataKey="name" 
+                    className="text-gray-600 dark:text-slate-400"
+                    angle={-15}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis className="text-gray-600 dark:text-slate-400" />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="bookings" fill="#3b82f6" name="Bookings" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="utilization" fill="#10b981" name="Utilization %" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="p-3 border border-gray-200 dark:border-slate-700 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                    <span className="text-sm text-gray-600 dark:text-slate-400">Total Bookings</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
+                    {data.roomUtilization.reduce((sum, room) => sum + room.bookings, 0)}
+                  </p>
+                </div>
+                <div className="p-3 border border-gray-200 dark:border-slate-700 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <span className="text-sm text-gray-600 dark:text-slate-400">Avg Utilization</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
+                    {Math.round(data.roomUtilization.reduce((sum, room) => sum + room.utilization, 0) / data.roomUtilization.length)}%
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
