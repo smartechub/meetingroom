@@ -4,6 +4,7 @@ import { generateICS } from "./icsHelper";
 
 export async function checkAndSendReminders() {
   try {
+    console.log('[Reminder Service] Running reminder check...');
     const emailSettings = await storage.getEmailSettings();
     
     if (!emailSettings || !emailSettings.enableReminders) {
@@ -15,29 +16,51 @@ export async function checkAndSendReminders() {
     const maxReminderDays = 7;
     const futureTime = new Date(now.getTime() + (maxReminderDays * 24 * 60 * 60 * 1000));
     
+    console.log(`[Reminder Service] Checking bookings from ${now.toISOString()} to ${futureTime.toISOString()}`);
+    
     const upcomingBookings = await storage.getUpcomingBookings(now, futureTime);
+    console.log(`[Reminder Service] Found ${upcomingBookings.length} upcoming booking(s)`);
     
     for (const booking of upcomingBookings) {
-      if (!booking.remindMe || booking.reminderSent) {
-        continue;
-      }
-
       const startTime = new Date(booking.startDateTime);
       const reminderTimeMs = (booking.reminderTime || 15) * 60 * 1000;
       const sendReminderAt = new Date(startTime.getTime() - reminderTimeMs);
       
-      if (now >= sendReminderAt && now < startTime) {
-        try {
-          await sendReminderEmail(booking, emailSettings);
-          await storage.markReminderSent(booking.id);
-          console.log(`[Reminder Service] Sent reminder for booking ${booking.id} - ${booking.title}`);
-        } catch (error) {
-          console.error(`[Reminder Service] Failed to send reminder for booking ${booking.id}:`, error);
-        }
+      console.log(`[Reminder Service] Booking ${booking.id} "${booking.title}": start=${startTime.toISOString()}, remindAt=${sendReminderAt.toISOString()}, remindMe=${booking.remindMe}, sent=${booking.reminderSent}`);
+      
+      if (!booking.remindMe) {
+        console.log(`[Reminder Service] Skipping booking ${booking.id} - remindMe is disabled`);
+        continue;
+      }
+      
+      if (booking.reminderSent) {
+        console.log(`[Reminder Service] Skipping booking ${booking.id} - reminder already sent`);
+        continue;
+      }
+      
+      if (now < sendReminderAt) {
+        console.log(`[Reminder Service] Skipping booking ${booking.id} - not time yet (${Math.round((sendReminderAt.getTime() - now.getTime()) / 60000)} minutes remaining)`);
+        continue;
+      }
+      
+      if (now >= startTime) {
+        console.log(`[Reminder Service] Skipping booking ${booking.id} - meeting already started`);
+        continue;
+      }
+
+      console.log(`[Reminder Service] Sending reminder for booking ${booking.id}`);
+      try {
+        await sendReminderEmail(booking, emailSettings);
+        await storage.markReminderSent(booking.id);
+        console.log(`[Reminder Service] ✓ Successfully sent reminder for booking ${booking.id} - ${booking.title}`);
+      } catch (error: any) {
+        console.error(`[Reminder Service] ✗ Failed to send reminder for booking ${booking.id}:`, error.message);
       }
     }
-  } catch (error) {
-    console.error('[Reminder Service] Error in reminder check:', error);
+    
+    console.log('[Reminder Service] Check complete');
+  } catch (error: any) {
+    console.error('[Reminder Service] Error in reminder check:', error.message);
   }
 }
 
