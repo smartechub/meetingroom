@@ -15,6 +15,22 @@ This project was imported from GitHub and successfully configured for the Replit
 - Default admin user and sample rooms created automatically on first run
 - Application is fully functional and accessible at the preview URL
 
+## Recent Changes (October 29, 2025)
+
+### Removed: Calendar Sync Feature
+- **Action**: Completely removed the Calendar Sync feature from the application
+- **Reason**: User requested removal of Microsoft Outlook calendar synchronization integration
+- **Files Deleted**:
+  - `client/src/components/CalendarSync.tsx` - Calendar sync UI component
+  - `client/src/pages/CalendarSyncDemo.tsx` - Demo page for calendar sync
+- **Files Modified**:
+  - `client/src/App.tsx` - Removed calendar sync routes and imports
+  - `client/src/components/Layout.tsx` - Removed calendar sync navigation menu item
+  - `server/routes.ts` - Removed all `/api/calendar-sync` API endpoints
+  - `server/storage.ts` - Removed calendar sync storage methods and interface definitions
+- **Database**: The `calendar_sync` table remains in the database schema but is no longer used by the application
+- **Note**: Replit's Outlook connector integration was dismissed - manual Microsoft Graph API integration was not implemented
+
 ## Recent Changes (October 28, 2025)
 
 ### Added: "Clear All" Button for Notifications

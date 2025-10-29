@@ -5,7 +5,6 @@ import {
   auditLogs,
   emailSettings,
   passwordResetTokens,
-  calendarSync,
   notifications,
   type User,
   type UpsertUser,
@@ -20,8 +19,6 @@ import {
   type InsertEmailSettings,
   type PasswordResetToken,
   type InsertPasswordResetToken,
-  type CalendarSync,
-  type InsertCalendarSync,
   type Notification,
   type InsertNotification,
 } from "@shared/schema";
@@ -79,12 +76,6 @@ export interface IStorage {
   getPasswordResetTokens(): Promise<PasswordResetToken[]>;
   markPasswordResetTokenUsed(id: number): Promise<boolean>;
   deletePasswordResetToken(token: string): Promise<boolean>;
-  
-  // Calendar sync operations
-  getCalendarSync(userId: string): Promise<CalendarSync[]>;
-  createCalendarSync(sync: InsertCalendarSync): Promise<CalendarSync>;
-  updateCalendarSync(id: number, updates: Partial<CalendarSync>): Promise<CalendarSync | undefined>;
-  deleteCalendarSync(id: number): Promise<boolean>;
   
   // Notification operations
   getAllNotifications(userId: string): Promise<Notification[]>;
@@ -516,39 +507,6 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(passwordResetTokens)
       .where(eq(passwordResetTokens.token, token));
-    return (result.rowCount || 0) > 0;
-  }
-
-  // Calendar sync operations
-  async getCalendarSync(userId: string): Promise<CalendarSync[]> {
-    return await db
-      .select()
-      .from(calendarSync)
-      .where(eq(calendarSync.userId, userId))
-      .orderBy(asc(calendarSync.createdAt));
-  }
-
-  async createCalendarSync(sync: InsertCalendarSync): Promise<CalendarSync> {
-    const [result] = await db
-      .insert(calendarSync)
-      .values(sync)
-      .returning();
-    return result;
-  }
-
-  async updateCalendarSync(id: number, updates: Partial<CalendarSync>): Promise<CalendarSync | undefined> {
-    const [result] = await db
-      .update(calendarSync)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(calendarSync.id, id))
-      .returning();
-    return result;
-  }
-
-  async deleteCalendarSync(id: number): Promise<boolean> {
-    const result = await db
-      .delete(calendarSync)
-      .where(eq(calendarSync.id, id));
     return (result.rowCount || 0) > 0;
   }
 

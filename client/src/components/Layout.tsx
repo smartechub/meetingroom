@@ -32,7 +32,6 @@ import {
   Moon,
   Mail,
   BarChart3,
-  RefreshCw,
   User,
   Lock,
   Menu,
@@ -164,7 +163,6 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Room Scheduler', href: '/calendar', icon: Calendar },
     { name: 'My Bookings', href: '/my-bookings', icon: List },
-    { name: 'Calendar Sync', href: '/calendar-sync', icon: RefreshCw },
   ];
 
   const adminNavigation = [
