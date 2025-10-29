@@ -52,6 +52,8 @@ export interface IStorage {
   updateBooking(id: number, updates: Partial<Booking>): Promise<Booking | undefined>;
   deleteBooking(id: number): Promise<boolean>;
   checkBookingConflict(roomId: number, startTime: Date, endTime: Date, excludeBookingId?: number): Promise<boolean>;
+  getUpcomingBookings(startDate: Date, endDate: Date): Promise<BookingWithRelations[]>;
+  markReminderSent(bookingId: number): Promise<boolean>;
   
   // Audit log operations
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
@@ -326,6 +328,36 @@ export class DatabaseStorage implements IStorage {
       .where(whereCondition);
     
     return conflicts.length > 0;
+  }
+
+  async getUpcomingBookings(startDate: Date, endDate: Date): Promise<BookingWithRelations[]> {
+    const result = await db
+      .select()
+      .from(bookings)
+      .leftJoin(rooms, eq(bookings.roomId, rooms.id))
+      .leftJoin(users, eq(bookings.userId, users.id))
+      .where(
+        and(
+          gte(bookings.startDateTime, startDate),
+          lte(bookings.startDateTime, endDate),
+          eq(bookings.status, "confirmed")
+        )
+      )
+      .orderBy(asc(bookings.startDateTime));
+    
+    return result.map(row => ({
+      ...row.bookings,
+      room: row.rooms!,
+      user: row.users!,
+    }));
+  }
+
+  async markReminderSent(bookingId: number): Promise<boolean> {
+    const result = await db
+      .update(bookings)
+      .set({ reminderSent: true, updatedAt: new Date() })
+      .where(eq(bookings.id, bookingId));
+    return (result.rowCount || 0) > 0;
   }
 
   // Audit log operations
