@@ -58,7 +58,7 @@ export default function Analytics() {
   const [utilizationView, setUtilizationView] = useState<"day" | "week" | "month">("week");
 
   const { data: analyticsData, isLoading } = useQuery<AnalyticsData>({
-    queryKey: ['/api/analytics', dateRange, selectedRoom],
+    queryKey: ['/api/analytics', { dateRange, roomId: selectedRoom, utilizationView }],
     retry: false,
   });
 

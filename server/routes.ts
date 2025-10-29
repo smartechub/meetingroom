@@ -1343,9 +1343,10 @@ EMP003,bob.jones@company.com,Bob,Jones,Analyst,Finance,user`;
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const { dateRange = '7d', roomId = 'all' } = req.query;
+      const { dateRange = '7d', roomId = 'all', utilizationView = 'week' } = req.query;
       
       // Mock analytics data - in production, this would query the database
+      // The utilizationView parameter (day/week/month) can be used to adjust time granularity
       const analyticsData = {
         summary: {
           totalBookings: 245,
