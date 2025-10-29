@@ -1346,7 +1346,29 @@ EMP003,bob.jones@company.com,Bob,Jones,Analyst,Finance,user`;
       const { dateRange = '7d', roomId = 'all', utilizationView = 'week' } = req.query;
       
       // Mock analytics data - in production, this would query the database
-      // The utilizationView parameter (day/week/month) can be used to adjust time granularity
+      // The utilizationView parameter (day/week/month) adjusts the time granularity
+      
+      // Generate room utilization data based on the view type
+      const getRoomUtilizationData = (view: string) => {
+        const baseRooms = [
+          { name: 'Conference Room A', base: 45 },
+          { name: 'Meeting Room B', base: 38 },
+          { name: 'Board Room', base: 22 },
+          { name: 'Training Room', base: 31 },
+          { name: 'Executive Suite', base: 18 },
+        ];
+        
+        // Adjust multipliers based on view type
+        const multiplier = view === 'day' ? 0.3 : view === 'month' ? 4.2 : 1;
+        
+        return baseRooms.map(room => ({
+          name: room.name,
+          bookings: Math.round(room.base * multiplier),
+          utilization: Math.min(95, Math.round((room.base * multiplier * 2.1) % 100)),
+          hours: Math.round(room.base * multiplier * 2.3),
+        }));
+      };
+      
       const analyticsData = {
         summary: {
           totalBookings: 245,
@@ -1367,12 +1389,7 @@ EMP003,bob.jones@company.com,Bob,Jones,Analyst,Finance,user`;
           { date: '2024-01-06', bookings: 16, duration: 2.3 },
           { date: '2024-01-07', bookings: 21, duration: 2.5 },
         ],
-        roomUtilization: [
-          { name: 'Conference Room A', bookings: 45, utilization: 78, hours: 96 },
-          { name: 'Meeting Room B', bookings: 38, utilization: 65, hours: 82 },
-          { name: 'Board Room', bookings: 22, utilization: 45, hours: 54 },
-          { name: 'Training Room', bookings: 31, utilization: 58, hours: 71 },
-        ],
+        roomUtilization: getRoomUtilizationData(utilizationView as string),
         timeDistribution: Array.from({ length: 12 }, (_, i) => ({
           hour: i + 8,
           bookings: Math.floor(Math.random() * 30) + 5,

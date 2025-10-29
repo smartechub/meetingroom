@@ -181,30 +181,30 @@ export default function Analytics() {
         </div>
         <div className="flex items-center space-x-4">
           <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32" data-testid="select-date-range">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="365d">Last year</SelectItem>
+              <SelectItem value="7d" data-testid="select-date-range-7d">Last 7 days</SelectItem>
+              <SelectItem value="30d" data-testid="select-date-range-30d">Last 30 days</SelectItem>
+              <SelectItem value="90d" data-testid="select-date-range-90d">Last 90 days</SelectItem>
+              <SelectItem value="365d" data-testid="select-date-range-365d">Last year</SelectItem>
             </SelectContent>
           </Select>
           <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40" data-testid="select-room-filter">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Rooms</SelectItem>
+              <SelectItem value="all" data-testid="select-room-all">All Rooms</SelectItem>
               {rooms.map((room: any) => (
-                <SelectItem key={room.id} value={room.id.toString()}>
+                <SelectItem key={room.id} value={room.id.toString()} data-testid={`select-room-${room.id}`}>
                   {room.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={exportData} variant="outline">
+          <Button onClick={exportData} variant="outline" data-testid="button-export-data">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
@@ -280,10 +280,10 @@ export default function Analytics() {
 
       <Tabs defaultValue="trends" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="trends">Booking Trends</TabsTrigger>
-          <TabsTrigger value="rooms">Room Analysis</TabsTrigger>
-          <TabsTrigger value="time">Time Distribution</TabsTrigger>
-          <TabsTrigger value="users">User Activity</TabsTrigger>
+          <TabsTrigger value="trends" data-testid="tab-booking-trends">Booking Trends</TabsTrigger>
+          <TabsTrigger value="rooms" data-testid="tab-room-analysis">Room Analysis</TabsTrigger>
+          <TabsTrigger value="time" data-testid="tab-time-distribution">Time Distribution</TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-user-activity">User Activity</TabsTrigger>
         </TabsList>
 
         <TabsContent value="trends" className="space-y-4">
