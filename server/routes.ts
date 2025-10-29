@@ -443,6 +443,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDateTime: new Date(parsedUpdates.startDateTime),
         endDateTime: new Date(parsedUpdates.endDateTime),
       };
+      
+      const effectiveRemindMe = parsedUpdates.remindMe !== undefined ? parsedUpdates.remindMe : booking.remindMe;
+      const effectiveReminderTime = parsedUpdates.reminderTime !== undefined ? parsedUpdates.reminderTime : booking.reminderTime;
+      
+      const timeOrReminderChanged = 
+        booking.startDateTime.getTime() !== updates.startDateTime.getTime() ||
+        booking.endDateTime.getTime() !== updates.endDateTime.getTime() ||
+        booking.remindMe !== effectiveRemindMe ||
+        booking.reminderTime !== effectiveReminderTime;
+      
+      if (timeOrReminderChanged && effectiveRemindMe) {
+        updates.reminderSent = false;
+      }
+      
       const updatedBooking = await storage.updateBooking(id, updates);
       await createAuditLog(req, 'update', 'booking', id.toString(), updates);
       res.json(updatedBooking);

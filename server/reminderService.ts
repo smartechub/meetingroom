@@ -12,7 +12,8 @@ export async function checkAndSendReminders() {
     }
 
     const now = new Date();
-    const futureTime = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+    const maxReminderDays = 7;
+    const futureTime = new Date(now.getTime() + (maxReminderDays * 24 * 60 * 60 * 1000));
     
     const upcomingBookings = await storage.getUpcomingBookings(now, futureTime);
     
